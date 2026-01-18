@@ -1,0 +1,74 @@
+import crypto from 'node:crypto';
+import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
+import { prisma } from '@repo/database';
+import Fastify from 'fastify';
+
+const app = Fastify({ logger: true, trustProxy: true });
+
+// Register plugins
+await app.register(cors, {
+  origin: 'http://localhost:5173',
+  credentials: true,
+});
+
+await app.register(cookie, {
+  secret: 'dev-secret-at-least-32-chars-long-and-secure',
+});
+
+// Endpoints
+app.get('/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+app.get('/info', async () => {
+  return {
+    service: 'api',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  };
+});
+
+app.get('/session', async (req, reply) => {
+  let sid = req.cookies.sid;
+
+  if (!sid) {
+    sid = crypto.randomUUID();
+    reply.setCookie('sid', sid, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+    });
+  }
+
+  const row = await prisma.sessionCounter.upsert({
+    where: { sessionId: sid },
+    create: { sessionId: sid, visits: 1 },
+    update: { visits: { increment: 1 } },
+    select: { visits: true },
+  });
+
+  return { hasSession: true, sessionId: sid, visits: row.visits };
+});
+
+app.post('/session/reset', async (req, reply) => {
+  const sid = req.cookies.sid;
+  if (sid) {
+    await prisma.sessionCounter.deleteMany({ where: { sessionId: sid } });
+  }
+
+  reply.clearCookie('sid', { path: '/' });
+  reply.status(204).send();
+});
+
+const start = async () => {
+  try {
+    await app.listen({ port: 3001, host: '0.0.0.0' });
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();

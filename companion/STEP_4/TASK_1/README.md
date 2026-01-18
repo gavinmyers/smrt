@@ -8,17 +8,17 @@ Set up a local Postgres instance using Docker Compose and configure the connecti
 services:
   db:
     image: postgres:16
-    container_name: project-db
+    container_name: smrt-db
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smrt
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ["CMD-SHELL", "pg_isready -U user -d smrt"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -29,7 +29,7 @@ volumes:
 
 ### 2. Create `project/.env`
 ```env
-DATABASE_URL="postgresql://app:app@localhost:5432/app?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/smrt?schema=public"
 ```
 
 ### 3. Start Database
@@ -41,4 +41,4 @@ Pop-Location
 ```
 
 Verification
-Verify that `project-db` container is running and healthy.
+Verify that `smrt-db` container is running and healthy.

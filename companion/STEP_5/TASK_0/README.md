@@ -95,17 +95,17 @@ server {
 services:
   db:
     image: postgres:16
-    container_name: project-db
+    container_name: smrt-db
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smrt
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ["CMD-SHELL", "pg_isready -U user -d smrt"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -114,9 +114,9 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: project-api
+    container_name: smrt-api
     environment:
-      DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
+      DATABASE_URL: postgresql://user:password@db:5432/smrt?schema=public
       WEB_ORIGIN: http://localhost:8080
       NODE_ENV: production
     depends_on:
@@ -129,7 +129,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    container_name: project-web
+    container_name: smrt-web
     depends_on:
       - api
     ports:
