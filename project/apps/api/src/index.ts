@@ -64,8 +64,18 @@ app.post('/session/reset', async (req, reply) => {
 
 const start = async () => {
   try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl === 'memory') {
+      app.log.info('Running with IN-MEMORY database fallback');
+    } else {
+      app.log.info(`Connecting to database at ${dbUrl?.split('@')[1] || 'unknown'}`);
+      await prisma.$connect();
+      app.log.info('Database connection successful');
+    }
+
     await app.listen({ port: 3001, host: '0.0.0.0' });
   } catch (err) {
+    app.log.error('Failed to start server:');
     app.log.error(err);
     process.exit(1);
   }
