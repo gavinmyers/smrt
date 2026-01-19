@@ -10,6 +10,8 @@ build
 **/.turbo
 .env
 **/.env
+logs
+**/logs
 .git
 .companion
 companion
