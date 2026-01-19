@@ -13,7 +13,8 @@ await app.register(cors, {
 });
 
 await app.register(cookie, {
-  secret: process.env.COOKIE_SECRET || 'dev-secret-at-least-32-chars-long-and-secure',
+  secret:
+    process.env.COOKIE_SECRET || 'dev-secret-at-least-32-chars-long-and-secure',
 });
 
 // Endpoints
@@ -62,13 +63,41 @@ app.post('/session/reset', async (req, reply) => {
   reply.status(204).send();
 });
 
+// Project Endpoints
+app.get('/projects', async () => {
+  return await prisma.project.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+});
+
+app.post('/projects', async (req, reply) => {
+  const { name } = req.body as { name: string };
+  if (!name) {
+    return reply.status(400).send({ error: 'Name is required' });
+  }
+  const project = await prisma.project.create({
+    data: { name },
+  });
+  return project;
+});
+
+app.delete('/projects/:id', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  await prisma.project.delete({
+    where: { id },
+  });
+  return reply.status(204).send();
+});
+
 const start = async () => {
   try {
     const dbUrl = process.env.DATABASE_URL;
     if (dbUrl === 'memory') {
       app.log.info('Running with IN-MEMORY database fallback');
     } else {
-      app.log.info(`Connecting to database at ${dbUrl?.split('@')[1] || 'unknown'}`);
+      app.log.info(
+        `Connecting to database at ${dbUrl?.split('@')[1] || 'unknown'}`,
+      );
       await prisma.$connect();
       app.log.info('Database connection successful');
     }
