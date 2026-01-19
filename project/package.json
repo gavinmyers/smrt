@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "dotenv -e .env -- pnpm exec turbo dev",
     "build": "pnpm exec turbo build",
+    "db:migrate": "dotenv -e .env.db -- pnpm exec prisma migrate dev",
+    "db:generate": "pnpm exec prisma generate",
     "lint": "pnpm exec biome check .",
     "test": "pnpm --filter web test --run",
     "test:e2e": "dotenv -e .env -- pnpm exec playwright test",

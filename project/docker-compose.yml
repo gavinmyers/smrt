@@ -1,40 +1,39 @@
 services:
-    db:
-      image: postgres:17-alpine
-      restart: always
-      environment:
-        POSTGRES_USER: ${DB_USER}
-        POSTGRES_PASSWORD: ${DB_PASSWORD}
-        POSTGRES_DB: ${DB_NAME}
-      ports:
-        - "${DB_PORT}:5432"
-      volumes:
-        - db_data:/var/lib/postgresql/data
-  
-    api:
-      build:
-        context: .
-        dockerfile: apps/api/Dockerfile
-      image: smrt-api
-      ports:
-        - "${PORT}:${PORT}"
-      environment:
-        DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public"
-      depends_on:
-        - db
-  
-    web:
-      build:
-        context: .
-        dockerfile: apps/web/Dockerfile
-      image: smrt-web
-      ports:
-        - "5173:80"
-      depends_on:
-        - api
-      volumes:
-        - ./logs/nginx:/var/log/nginx
-  
-  volumes:
-    db_data:
-  
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: smrt-api
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: smrt-web
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+
+volumes:
+  db_data:

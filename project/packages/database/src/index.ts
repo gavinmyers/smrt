@@ -56,14 +56,23 @@ class MemoryDB {
       this.projects.set(id, project);
       return project;
     },
-    delete: async ({ where }: { where: { id: string } }) => {
-      const project = this.projects.get(where.id);
-      this.projects.delete(where.id);
-      return project;
-    },
-  };
-
-  // Add other models as needed for dev
+    		delete: async ({ where }: { where: { id: string } }) => {
+    			const project = this.projects.get(where.id);
+    			this.projects.delete(where.id);
+    			return project;
+    		},
+    		update: async ({
+    			where,
+    			data,
+    		}: { where: { id: string }; data: { name: string } }) => {
+    			const project = this.projects.get(where.id);
+    			if (!project) throw new Error('Project not found');
+    			const updated = { ...project, ...data, updatedAt: new Date() };
+    			this.projects.set(where.id, updated);
+    			return updated;
+    		},
+    	};
+      // Add other models as needed for dev
   applicationInfo = {
     findMany: async () => [],
     create: async ({ data }: { data: { name: string } }) => ({

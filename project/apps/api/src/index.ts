@@ -81,6 +81,19 @@ app.post('/projects', async (req, reply) => {
   return project;
 });
 
+app.patch('/projects/:id', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { name } = req.body as { name: string };
+  if (!name) {
+    return reply.status(400).send({ error: 'Name is required' });
+  }
+  const project = await prisma.project.update({
+    where: { id },
+    data: { name },
+  });
+  return project;
+});
+
 app.delete('/projects/:id', async (req, reply) => {
   const { id } = req.params as { id: string };
   await prisma.project.delete({
