@@ -17,6 +17,8 @@ ENV NODE_ENV=production
 RUN pnpm exec prisma generate
 RUN pnpm --filter api build
 
+COPY apps/api/startup.mjs ./startup.mjs
+
 EXPOSE 3001
 
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node apps/api/dist/index.js"]
+CMD ["node", "apps/api/startup.mjs"]
