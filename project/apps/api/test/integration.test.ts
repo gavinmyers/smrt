@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { buildApp } from '../src/index.js';
+import { buildApp } from '../src/app.js';
 import { prisma } from '@repo/database';
 
 describe('API Integration Tests', () => {

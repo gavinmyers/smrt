@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "pnpm exec tsup src/index.ts --format esm --dts --clean --external @repo/database",
+    "dev": "tsx watch src/server.ts",
+    "build": "pnpm exec tsup src/server.ts --format esm --dts --clean --external @repo/database",
     "start": "node startup.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
