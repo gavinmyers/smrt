@@ -153,7 +153,11 @@ export const buildApp = async () => {
 
   app.register(async (api) => {
     api.get('/session', async (req, reply) => {
-      return { sessionId: (req as any).sid };
+      const sid = (req as any).sid;
+      const session = await prisma.sessionCounter.findUnique({
+        where: { sessionId: sid },
+      });
+      return session || { sessionId: sid };
     });
   }, { prefix: '/api' });
 

@@ -87,4 +87,43 @@ describe('API Integration Tests', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().sessionId).toBeDefined();
   });
+
+  it('GET /api/session should return userId after login', async () => {
+    const { email, password, id } = (global as any).testUser;
+    
+    // Login again to ensure session is linked (in case previous tests messed state, though they shouldn't have)
+    // Note: In a real integration test with cookies, we wouldn't need to re-login if the cookie jar was persisted.
+    // Here we are just verifying the API behavior assuming the same 'sid' logic applies or we are testing the logic flow.
+    // However, since `app.inject` resets cookies per request unless chained or managed, the 'sid' generated in this request
+    // will be NEW and NOT linked to the user. 
+    //
+    // FIX: We need to simulate the flow within a single session or manually link the new session.
+    // Since we can't easily share cookie state across `it` blocks with standard `app.inject` without a lot of boilerplate,
+    // let's do a self-contained test for this scenario.
+    
+    // 1. Create a user (or use existing)
+    // 2. Login
+    // 3. Get Session -> Check userId
+    
+    // Actually, let's just use the `onResponse` or cookie parsing to get the SID from the login response 
+    // and pass it to the session request.
+    
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/open/user/login',
+      payload: { email, password },
+    });
+    
+    const cookies = loginRes.cookies; // access cookies from response
+    const sidCookie = cookies.find((c: any) => c.name === 'sid');
+    
+    const sessionRes = await app.inject({
+      method: 'GET',
+      url: '/api/session',
+      cookies: { sid: sidCookie.value }
+    });
+    
+    expect(sessionRes.statusCode).toBe(200);
+    expect(sessionRes.json().userId).toBe(id);
+  });
 });
