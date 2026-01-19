@@ -20,15 +20,15 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter api start',
-      url: 'http://localhost:3000/health',
+      url: 'http://localhost:3001/health',
       reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      timeout: 30_000,
     },
     {
-      command: 'pnpm --filter web preview',
+      command: 'pnpm --filter web preview --host 0.0.0.0',
       url: 'http://localhost:4173',
       reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      timeout: 30_000,
     },
   ],
 });

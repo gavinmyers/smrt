@@ -17,7 +17,50 @@ await app.register(cookie, {
 });
 
 // Endpoints
-// ... (omitting health, info, session routes for brevity)
+app.get('/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+app.get('/info', async () => {
+  return {
+    service: 'api',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  };
+});
+
+app.get('/session', async (req, reply) => {
+  let sid = req.cookies.sid;
+
+  if (!sid) {
+    sid = crypto.randomUUID();
+    reply.setCookie('sid', sid, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+    });
+  }
+
+  const row = await prisma.sessionCounter.upsert({
+    where: { sessionId: sid },
+    create: { sessionId: sid, visits: 1 },
+    update: { visits: { increment: 1 } },
+    select: { visits: true },
+  });
+
+  return { hasSession: true, sessionId: sid, visits: row.visits };
+});
+
+app.post('/session/reset', async (req, reply) => {
+  const sid = req.cookies.sid;
+  if (sid) {
+    await prisma.sessionCounter.deleteMany({ where: { sessionId: sid } });
+  }
+
+  reply.clearCookie('sid', { path: '/' });
+  reply.status(204).send();
+});
 
 const start = async () => {
   try {

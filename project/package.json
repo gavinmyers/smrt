@@ -7,7 +7,7 @@
     "build": "pnpm exec turbo build",
     "lint": "pnpm exec biome check .",
     "test": "pnpm --filter web test --run",
-    "test:e2e": "pnpm exec playwright test",
+    "test:e2e": "dotenv -e .env -- pnpm exec playwright test",
     "verify": "pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
   },
   "devDependencies": {
