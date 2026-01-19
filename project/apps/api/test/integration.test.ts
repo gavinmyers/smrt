@@ -125,5 +125,65 @@ describe('API Integration Tests', () => {
     
     expect(sessionRes.statusCode).toBe(200);
     expect(sessionRes.json().userId).toBe(id);
+
+    // Save cookie for subsequent requests
+    (global as any).authCookie = sidCookie.value;
+  });
+
+  it('Project Management Flow', async () => {
+    const cookie = (global as any).authCookie;
+    const headers = { cookie: `sid=${cookie}` };
+
+    // 1. Create Project
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/session/project/create',
+      headers,
+      payload: { name: 'Test Project' },
+    });
+    expect(createRes.statusCode).toBe(200);
+    const project = createRes.json();
+    expect(project.id).toBeDefined();
+    expect(project.name).toBe('Test Project');
+
+    // 2. List Projects
+    const listRes = await app.inject({
+      method: 'GET',
+      url: '/api/session/project/list',
+      headers,
+    });
+    expect(listRes.statusCode).toBe(200);
+    const projects = listRes.json();
+    expect(projects).toHaveLength(1);
+    expect(projects[0].id).toBe(project.id);
+
+    // 3. Add Condition
+    const condRes = await app.inject({
+      method: 'POST',
+      url: `/api/session/project/${project.id}/conditions`,
+      headers,
+      payload: { name: 'Is Beta User' },
+    });
+    expect(condRes.statusCode).toBe(200);
+    expect(condRes.json().projectId).toBe(project.id);
+
+    // 4. Add Feature
+    const featRes = await app.inject({
+      method: 'POST',
+      url: `/api/session/project/${project.id}/features`,
+      headers,
+      payload: { name: 'Dark Mode' },
+    });
+    expect(featRes.statusCode).toBe(200);
+
+    // 5. Add Key
+    const keyRes = await app.inject({
+      method: 'POST',
+      url: `/api/session/project/${project.id}/keys`,
+      headers,
+      payload: { name: 'Dev Key' },
+    });
+    expect(keyRes.statusCode).toBe(200);
+    expect(keyRes.json().token).toBeDefined(); // Token should be returned on creation
   });
 });
