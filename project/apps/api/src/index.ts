@@ -4,7 +4,12 @@ import cors from '@fastify/cors';
 import { prisma } from '@repo/database';
 import Fastify from 'fastify';
 
-const app = Fastify({ logger: true, trustProxy: true });
+const app = Fastify({
+  logger: {
+    level: process.env.LOG_LEVEL || 'info',
+  },
+  trustProxy: true,
+});
 
 // Register plugins
 await app.register(cors, {
@@ -17,22 +22,10 @@ await app.register(cookie, {
     process.env.COOKIE_SECRET || 'dev-secret-at-least-32-chars-long-and-secure',
 });
 
-// Endpoints
-app.get('/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
-});
-
-app.get('/info', async () => {
-  return {
-    service: 'api',
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-  };
-});
-
-app.get('/session', async (req, reply) => {
+// Global Session Initialization (Middleware for all requests to ensure SID exists)
+app.addHook('onRequest', async (req, reply) => {
   let sid = req.cookies.sid;
-
+  const isNew = !sid;
   if (!sid) {
     sid = crypto.randomUUID();
     reply.setCookie('sid', sid, {
@@ -43,77 +36,71 @@ app.get('/session', async (req, reply) => {
     });
   }
 
-  const row = await prisma.sessionCounter.upsert({
+  // Attach sid to request object so endpoints can use it even if it's not in cookies yet
+  (req as any).sid = sid;
+  app.log.debug(`[Session] SID: ${sid} (New: ${isNew}) for ${req.method} ${req.url}`);
+
+  // Ensure session entry exists in DB
+  await prisma.sessionCounter.upsert({
     where: { sessionId: sid },
     create: { sessionId: sid, visits: 1 },
     update: { visits: { increment: 1 } },
-    select: { visits: true },
-  });
-
-  return { hasSession: true, sessionId: sid, visits: row.visits };
-});
-
-app.post('/session/reset', async (req, reply) => {
-  const sid = req.cookies.sid;
-  if (sid) {
-    await prisma.sessionCounter.deleteMany({ where: { sessionId: sid } });
-  }
-
-  reply.clearCookie('sid', { path: '/' });
-  reply.status(204).send();
-});
-
-// Project Endpoints
-app.get('/projects', async () => {
-  return await prisma.project.findMany({
-    orderBy: { createdAt: 'desc' },
   });
 });
 
-app.post('/projects', async (req, reply) => {
-  const { name } = req.body as { name: string };
-  if (!name) {
-    return reply.status(400).send({ error: 'Name is required' });
-  }
-  const project = await prisma.project.create({
-    data: { name },
-  });
-  return project;
-});
+import { promisify } from 'node:util';
 
-app.patch('/projects/:id', async (req, reply) => {
-  const { id } = req.params as { id: string };
-  const { name } = req.body as { name: string };
-  if (!name) {
-    return reply.status(400).send({ error: 'Name is required' });
-  }
-  const project = await prisma.project.update({
-    where: { id },
-    data: { name },
-  });
-  return project;
-});
+const scrypt = promisify(crypto.scrypt);
 
-app.delete('/projects/:id', async (req, reply) => {
-  const { id } = req.params as { id: string };
-  await prisma.project.delete({
-    where: { id },
-  });
-  return reply.status(204).send();
-});
+// --- NAMESPACES ---
+
+app.register(async (api) => {
+  api.post<{ Body: { email: string; password: string; name?: string } }>(
+    '/user/register',
+    async (req, reply) => {
+      const { email, password, name } = req.body;
+
+      if (!email || !password) {
+        return reply.status(400).send({ error: 'Email and password are required' });
+      }
+
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return reply.status(409).send({ error: 'User already exists' });
+      }
+
+      const salt = crypto.randomBytes(16).toString('hex');
+      const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+      const hash = `${salt}:${derivedKey.toString('hex')}`;
+
+      const user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          hash: {
+            create: {
+              hash,
+            },
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+        },
+      });
+
+      return reply.status(201).send(user);
+    }
+  );
+}, { prefix: '/api/open' });
 
 const start = async () => {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (dbUrl === 'memory') {
-      app.log.info('Running with IN-MEMORY database fallback');
-    } else {
-      app.log.info(
-        `Connecting to database at ${dbUrl?.split('@')[1] || 'unknown'}`,
-      );
-      await prisma.$connect();
-      app.log.info('Database connection successful');
-    }
+    app.log.info('Connecting to database...');
+    await prisma.$connect();
+    app.log.info('Database connection successful');
 
     const port = Number(process.env.PORT) || 3001;
     const host = process.env.HOST || '0.0.0.0';
