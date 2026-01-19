@@ -1,4 +1,3 @@
-import './env.js';
 import crypto from 'node:crypto';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
