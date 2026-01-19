@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "pnpm exec tsup src/index.ts --format esm --dts --clean --external @repo/database",
-    "start": "node startup.mjs"
+    "start": "node startup.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -16,8 +18,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.9",
+    "@types/supertest": "^6.0.3",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.17"
   }
 }
