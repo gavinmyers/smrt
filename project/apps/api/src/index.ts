@@ -95,9 +95,60 @@ export const buildApp = async () => {
           },
         });
 
+        // Auto-login after register
+        await prisma.sessionCounter.update({
+          where: { sessionId: (req as any).sid },
+          data: { userId: user.id },
+        });
+
         return reply.status(201).send(user);
       }
     );
+
+    api.post<{ Body: { email: string; password: string } }>(
+      '/user/login',
+      async (req, reply) => {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+          return reply.status(400).send({ error: 'Email and password are required' });
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { hash: true },
+        });
+
+        if (!user || !user.hash) {
+          // Use generic error message for security
+          return reply.status(401).send({ error: 'Invalid email or password' });
+        }
+
+        const [salt, key] = user.hash.hash.split(':');
+        const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+
+        if (key !== derivedKey.toString('hex')) {
+          return reply.status(401).send({ error: 'Invalid email or password' });
+        }
+
+        // Link session to user
+        await prisma.sessionCounter.update({
+          where: { sessionId: (req as any).sid },
+          data: { userId: user.id },
+        });
+
+        const { hash, ...userWithoutHash } = user;
+        return reply.send(userWithoutHash);
+      }
+    );
+
+    api.post('/user/logout', async (req, reply) => {
+      await prisma.sessionCounter.update({
+        where: { sessionId: (req as any).sid },
+        data: { userId: null },
+      });
+      return reply.send({ status: 'ok' });
+    });
   }, { prefix: '/api/open' });
 
   app.register(async (api) => {

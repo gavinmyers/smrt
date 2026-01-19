@@ -16,7 +16,10 @@ export async function login(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Login failed');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Login failed' }));
+    throw new Error(error.error || 'Login failed');
+  }
   return response.json();
 }
 
@@ -26,7 +29,10 @@ export async function register(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Registration failed');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Registration failed' }));
+    throw new Error(error.error || 'Registration failed');
+  }
   return response.json();
 }
 
