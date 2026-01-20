@@ -23,18 +23,19 @@ export const projectRoutes = async (api: FastifyInstance) => {
     return projects;
   });
 
-  api.post<{ Body: { name: string } }>(
+  api.post<{ Body: { name: string; description?: string } }>(
     '/session/project/create',
     async (req, reply) => {
       const userId = await getUser((req as any).sid);
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
-      const { name } = req.body;
+      const { name, description } = req.body;
       if (!name) return reply.status(400).send({ error: 'Name is required' });
 
       const project = await prisma.project.create({
         data: {
           name,
+          description,
           users: { connect: { id: userId } },
         },
       });
@@ -58,14 +59,14 @@ export const projectRoutes = async (api: FastifyInstance) => {
     }
   );
 
-  api.patch<{ Params: { id: string }; Body: { name: string } }>(
+  api.patch<{ Params: { id: string }; Body: { name?: string; description?: string } }>(
     '/session/project/:id',
     async (req, reply) => {
       const userId = await getUser((req as any).sid);
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
       const { id } = req.params;
-      const { name } = req.body;
+      const { name, description } = req.body;
 
       const exists = await prisma.project.findFirst({
         where: { id, users: { some: { id: userId } } },
@@ -74,7 +75,7 @@ export const projectRoutes = async (api: FastifyInstance) => {
 
       const project = await prisma.project.update({
         where: { id },
-        data: { name },
+        data: { name, description },
       });
       return project;
     }
@@ -187,7 +188,7 @@ export const projectRoutes = async (api: FastifyInstance) => {
     }
   );
 
-  api.patch<{ Params: { projectId: string; id: string }; Body: { name: string; message?: string } }>(
+  api.patch<{ Params: { projectId: string; id: string }; Body: { name?: string; message?: string; status?: any } }>(
     '/session/project/:projectId/features/:id',
     async (req, reply) => {
       if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
@@ -197,7 +198,8 @@ export const projectRoutes = async (api: FastifyInstance) => {
         where: { id: req.params.id },
         data: { 
           name: req.body.name,
-          message: req.body.message, 
+          message: req.body.message,
+          status: req.body.status, 
         },
       });
     }
@@ -210,6 +212,129 @@ export const projectRoutes = async (api: FastifyInstance) => {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
       await prisma.feature.delete({ where: { id: req.params.id } });
+      return { status: 'ok' };
+    }
+  );
+
+  api.get<{ Params: { projectId: string; id: string } }>(
+    '/session/project/:projectId/features/:id',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.feature.findUnique({
+        where: { id: req.params.id },
+      });
+    }
+  );
+
+  // Requirements
+  api.get<{ Params: { projectId: string; featureId: string } }>(
+    '/session/project/:projectId/features/:featureId/requirements',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.requirement.findMany({
+        where: { featureId: req.params.featureId },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+  );
+
+  api.post<{ Params: { projectId: string; featureId: string }; Body: { name: string } }>(
+    '/session/project/:projectId/features/:featureId/requirements',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.requirement.create({
+        data: {
+          name: req.body.name,
+          featureId: req.params.featureId,
+        },
+      });
+    }
+  );
+
+  api.patch<{ Params: { projectId: string; featureId: string; id: string }; Body: { name?: string; status?: any } }>(
+    '/session/project/:projectId/features/:featureId/requirements/:id',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.requirement.update({
+        where: { id: req.params.id },
+        data: {
+          name: req.body.name,
+          status: req.body.status,
+        },
+      });
+    }
+  );
+
+  api.delete<{ Params: { projectId: string; featureId: string; id: string } }>(
+    '/session/project/:projectId/features/:featureId/requirements/:id',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      await prisma.requirement.delete({ where: { id: req.params.id } });
+      return { status: 'ok' };
+    }
+  );
+
+  // Project Requirements
+  api.get<{ Params: { projectId: string } }>(
+    '/session/project/:projectId/project-requirements',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.projectRequirement.findMany({
+        where: { projectId: req.params.projectId },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+  );
+
+  api.post<{ Params: { projectId: string }; Body: { name: string } }>(
+    '/session/project/:projectId/project-requirements',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.projectRequirement.create({
+        data: {
+          name: req.body.name,
+          projectId: req.params.projectId,
+        },
+      });
+    }
+  );
+
+  api.patch<{ Params: { projectId: string; id: string }; Body: { name?: string } }>(
+    '/session/project/:projectId/project-requirements/:id',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.projectRequirement.update({
+        where: { id: req.params.id },
+        data: {
+          name: req.body.name,
+        },
+      });
+    }
+  );
+
+  api.delete<{ Params: { projectId: string; id: string } }>(
+    '/session/project/:projectId/project-requirements/:id',
+    async (req, reply) => {
+      if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      await prisma.projectRequirement.delete({ where: { id: req.params.id } });
       return { status: 'ok' };
     }
   );

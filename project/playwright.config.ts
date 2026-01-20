@@ -8,8 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:${process.env.VITE_PORT || '4173'}`,
     trace: 'on-first-retry',
+    video: 'on-first-retry',
   },
   projects: [
     {
@@ -19,16 +20,25 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'pnpm --filter api start',
-      url: 'http://localhost:3001/health',
+      command: 'pnpm --filter api build && pnpm --filter api start',
+      url: `http://localhost:${process.env.PORT || '3001'}/api/open/status/health`,
       reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
+      env: {
+        PORT: process.env.PORT || '3001',
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5434/smrt_test?schema=public',
+        DB_HOST: 'localhost',
+        DB_PORT: '5434',
+      },
+      timeout: 120_000,
     },
     {
-      command: 'pnpm --filter web preview --host 0.0.0.0',
-      url: 'http://localhost:4173',
+      command: `pnpm --filter web preview --port ${process.env.VITE_PORT || '4173'} --host 0.0.0.0`,
+      url: `http://localhost:${process.env.VITE_PORT || '4173'}`,
       reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
+      env: {
+        VITE_API_URL: `http://localhost:${process.env.PORT || '3001'}`,
+      },
+      timeout: 120_000,
     },
   ],
 });

@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    # No volumes here = ephemeral data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: smrt-api-test
+    ports:
+      - "${API_PORT}:${INTERNAL_PORT}"
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public"
+      PORT: ${INTERNAL_PORT}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: smrt-web-test
+    ports:
+      - "${WEB_PORT}:80"
+    environment:
+      VITE_API_URL: ${API_URL}
+    depends_on:
+      - api
+    volumes:
+      - ./logs/nginx-test:/var/log/nginx

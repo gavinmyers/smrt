@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smrt_local
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_local_data:

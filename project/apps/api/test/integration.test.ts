@@ -186,4 +186,30 @@ describe('API Integration Tests', () => {
     expect(keyRes.statusCode).toBe(200);
     expect(keyRes.json().token).toBeDefined(); // Token should be returned on creation
   });
+
+  it('Project Management Flow with Description', async () => {
+    const cookie = (global as any).authCookie;
+    const headers = { cookie: `sid=${cookie}` };
+
+    // 1. Create Project with Description
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/session/project/create',
+      headers,
+      payload: { name: 'Described Project', description: 'A project with goals.' },
+    });
+    expect(createRes.statusCode).toBe(200);
+    const project = createRes.json();
+    expect(project.description).toBe('A project with goals.');
+
+    // 2. Update Description
+    const updateRes = await app.inject({
+      method: 'PATCH',
+      url: `/api/session/project/${project.id}`,
+      headers,
+      payload: { description: 'Updated goals.' },
+    });
+    expect(updateRes.statusCode).toBe(200);
+    expect(updateRes.json().description).toBe('Updated goals.');
+  });
 });

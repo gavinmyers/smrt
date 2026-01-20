@@ -25,12 +25,14 @@ model SessionCounter {
 model Project {
   id         String      @id @default(uuid())
   name       String
+  description String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   conditions Condition[]
   features   Feature[]
   keys       Key[]
   users      User[]      @relation("ProjectUsers")
+  projectRequirements ProjectRequirement[]
 }
 
 model User {
@@ -77,10 +79,42 @@ model Condition {
   updatedAt DateTime @updatedAt
 }
 
+enum FeatureStatus {
+  OPEN
+  LOCKED
+  CLOSED
+}
+
+enum RequirementStatus {
+  OPEN
+  CLOSED
+}
+
 model Feature {
+  id           String        @id @default(uuid())
+  name         String
+  message      String?
+  status       FeatureStatus @default(OPEN)
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirements Requirement[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Requirement {
+  id        String            @id @default(uuid())
+  name      String
+  status    RequirementStatus @default(OPEN)
+  featureId String
+  feature   Feature           @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model ProjectRequirement {
   id        String   @id @default(uuid())
   name      String
-  message   String?
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
