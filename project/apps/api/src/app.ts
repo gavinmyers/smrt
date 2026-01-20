@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { authRoutes } from './routes/auth.js';
 import { projectRoutes } from './routes/projects.js';
+import { cliRoutes } from './routes/cli.js';
 import { sessionHook } from './hooks/session.js';
 
 export const buildApp = async () => {
@@ -34,6 +35,9 @@ export const buildApp = async () => {
 
   // Project Management
   app.register(projectRoutes, { prefix: '/api' });
+
+  // CLI
+  app.register(cliRoutes, { prefix: '/api/cli' });
 
   return app;
 };
