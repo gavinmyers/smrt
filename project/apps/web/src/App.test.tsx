@@ -1,6 +1,7 @@
 import { render, waitFor, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
+import * as api from './api';
 
 // Mock API to prevent unhandled state updates
 vi.mock('./api', () => ({
@@ -12,6 +13,8 @@ vi.mock('./api', () => ({
   fetchProject: vi.fn().mockResolvedValue({ id: 'project-1', name: 'Test Project' }),
   fetchConditions: vi.fn().mockResolvedValue([]),
   fetchFeatures: vi.fn().mockResolvedValue([]),
+  fetchFeature: vi.fn().mockResolvedValue({ id: 'feature-1', name: 'Test Feature' }),
+  fetchRequirements: vi.fn().mockResolvedValue([]),
   fetchKeys: vi.fn().mockResolvedValue([]),
   fetchProjectRequirements: vi.fn().mockResolvedValue([]),
   login: vi.fn().mockResolvedValue({ success: true }),
@@ -42,25 +45,33 @@ describe('App', () => {
   });
 
   it('renders breadcrumbs with mapped names', async () => {
-    // Navigate to a project URL directly
-    window.history.pushState({}, 'Test Project', '/projects/project-1');
+    // Navigate to a feature URL directly
+    window.history.pushState({}, 'Test Feature', '/projects/project-1/features/feature-1');
     
+    // Update mocks for feature
+    vi.mocked(api.fetchFeature).mockResolvedValue({ id: 'feature-1', name: 'Test Feature' });
+
     render(<App />);
 
     await waitFor(() => {
-      // Should show 'Home', 'Projects', and the project name 'Test Project'
+      // Should show 'Home', 'Projects', 'Test Project', 'Features', and 'Test Feature'
       expect(screen.getByLabelText('breadcrumb-home')).toBeTruthy();
       expect(screen.getByLabelText('breadcrumb-projects')).toBeTruthy();
-      expect(screen.getByLabelText('breadcrumb-active').textContent).toBe('Test Project');
-      // It should NOT show the ID 'project-1'
-      expect(screen.queryByText('project-1')).toBeNull();
+      expect(screen.getByText('Test Project')).toBeTruthy();
+      expect(screen.getByLabelText('breadcrumb-features')).toBeTruthy();
+      expect(screen.getByLabelText('breadcrumb-active').textContent).toBe('Test Feature');
     });
 
     // Verify links
-    const homeLink = screen.getByLabelText('breadcrumb-home');
-    expect(homeLink.getAttribute('href')).toBe('/');
+    expect(screen.getByLabelText('breadcrumb-home').getAttribute('href')).toBe('/');
+    expect(screen.getByLabelText('breadcrumb-projects').getAttribute('href')).toBe('/projects');
+    
+    // Project link
+    const projectLink = screen.getByText('Test Project').closest('a');
+    expect(projectLink?.getAttribute('href')).toBe('/projects/project-1');
 
-    const projectsLink = screen.getByLabelText('breadcrumb-projects');
-    expect(projectsLink.getAttribute('href')).toBe('/projects');
+    // Features link should point to project tab 2
+    const featuresLink = screen.getByLabelText('breadcrumb-features');
+    expect(featuresLink.getAttribute('href')).toBe('/projects/project-1?tab=2');
   });
 });

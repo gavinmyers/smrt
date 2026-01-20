@@ -45,6 +45,7 @@ import {
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom';
 import * as api from './api';
 
@@ -364,8 +365,20 @@ function ProjectsView() {
 function ProjectDetailsView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { setBreadcrumbName } = useBreadcrumbs();
-  const [tab, setTab] = useState(0);
+  
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam ? parseInt(tabParam, 10) : 0;
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (tabParam) {
+      const val = parseInt(tabParam, 10);
+      if (!isNaN(val)) setTab(val);
+    }
+  }, [tabParam]);
+
   const [project, setProject] = useState<Project | null>(null);
   const [conditions, setConditions] = useState<Item[]>([]);
   const [features, setFeatures] = useState<Item[]>([]);
@@ -504,6 +517,7 @@ function ProjectDetailsView() {
           value={tab}
           onChange={(_, v) => {
             console.log(`[ProjectDetailsView] Tab changed to ${v}`);
+            setSearchParams({ tab: v.toString() });
             setTab(v);
             setEditingId(null);
           }}
@@ -1046,11 +1060,15 @@ function BreadcrumbsArea() {
       </Link>
       {pathnames.map((value, index) => {
         const last = index === pathnames.length - 1;
-        const to = `/${pathnames.slice(0, index + 1).join('/')}`;
+        let to = `/${pathnames.slice(0, index + 1).join('/')}`;
         const displayName = names[value] || value;
 
-        // Skip "projects" if it's the first segment to avoid redundancy with Home if desired,
-        // but here we want to show it as the first step after Home.
+        // Custom logic for "features" segment:
+        // If the path is /projects/:id/features, it should link to /projects/:id?tab=2
+        if (value === 'features' && index > 0 && pathnames[index-1] !== 'projects') {
+          const projectId = pathnames[index-1];
+          to = `/projects/${projectId}?tab=2`;
+        }
         
         return last ? (
           <Typography color="text.primary" key={to} aria-label={`breadcrumb-active`}>
