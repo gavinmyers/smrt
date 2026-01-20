@@ -50,6 +50,31 @@ import * as api from './api';
 
 const DRAWER_WIDTH = 240;
 
+import { createContext, useContext, useCallback } from 'react';
+
+const BreadcrumbContext = createContext<{
+  names: Record<string, string>;
+  setBreadcrumbName: (id: string, name: string) => void;
+}>({
+  names: {},
+  setBreadcrumbName: () => {},
+});
+
+function BreadcrumbProvider({ children }: { children: React.ReactNode }) {
+  const [names, setNames] = useState<Record<string, string>>({});
+  const setBreadcrumbName = useCallback((id: string, name: string) => {
+    setNames((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
+  }, []);
+
+  return (
+    <BreadcrumbContext.Provider value={{ names, setBreadcrumbName }}>
+      {children}
+    </BreadcrumbContext.Provider>
+  );
+}
+
+const useBreadcrumbs = () => useContext(BreadcrumbContext);
+
 interface Project {
   id: string;
   name: string;
@@ -260,17 +285,19 @@ function InlineEditList({
 
 function ProjectsView() {
   const navigate = useNavigate();
+  const { setBreadcrumbName } = useBreadcrumbs();
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setBreadcrumbName('projects', 'Projects');
     api
       .fetchProjects()
       .then(setProjects)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [setBreadcrumbName]);
 
   const handleAdd = () => {
     const tempId = `temp-${Date.now()}`;
@@ -337,6 +364,7 @@ function ProjectsView() {
 function ProjectDetailsView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { setBreadcrumbName } = useBreadcrumbs();
   const [tab, setTab] = useState(0);
   const [project, setProject] = useState<Project | null>(null);
   const [conditions, setConditions] = useState<Item[]>([]);
@@ -354,9 +382,13 @@ function ProjectDetailsView() {
 
   useEffect(() => {
     if (!id) return;
+    setBreadcrumbName('projects', 'Projects');
     api
       .fetchProject(id)
-      .then(setProject)
+      .then((p) => {
+        setProject(p);
+        setBreadcrumbName(id, p.name);
+      })
       .catch((e) => setError(e.message));
     api
       .fetchConditions(id)
@@ -374,7 +406,7 @@ function ProjectDetailsView() {
       .fetchProjectRequirements(id)
       .then(setProjectRequirements)
       .catch((e) => setError(e.message));
-  }, [id]);
+  }, [id, setBreadcrumbName]);
 
   const handleSaveInfo = async () => {
     if (!id || !editInfoName.trim()) return;
@@ -707,6 +739,7 @@ function FeatureDetailsView() {
     projectId: string;
     featureId: string;
   }>();
+  const { setBreadcrumbName, names } = useBreadcrumbs();
   const [feature, setFeature] = useState<Item | null>(null);
   const [requirements, setRequirements] = useState<Item[]>([]);
   const [projectRequirements, setProjectRequirements] = useState<Item[]>([]);
@@ -717,9 +750,19 @@ function FeatureDetailsView() {
 
   useEffect(() => {
     if (!projectId || !featureId) return;
+    setBreadcrumbName('projects', 'Projects');
+    setBreadcrumbName('features', 'Features');
+
+    if (!names[projectId]) {
+      api.fetchProject(projectId).then((p) => setBreadcrumbName(projectId, p.name));
+    }
+
     api
       .fetchFeature(projectId, featureId)
-      .then(setFeature)
+      .then((f) => {
+        setFeature(f);
+        setBreadcrumbName(featureId, f.name);
+      })
       .catch((e) => setError(e.message));
     api
       .fetchRequirements(projectId, featureId)
@@ -729,7 +772,7 @@ function FeatureDetailsView() {
       .fetchProjectRequirements(projectId)
       .then(setProjectRequirements)
       .catch((e) => setError(e.message));
-  }, [projectId, featureId]);
+  }, [projectId, featureId, setBreadcrumbName, names]);
 
   const handleAdd = () => {
     const tempId = `temp-${Date.now()}`;
@@ -981,6 +1024,7 @@ function SystemView() {
 
 function BreadcrumbsArea() {
   const location = useLocation();
+  const { names } = useBreadcrumbs();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
   return (
@@ -993,19 +1037,24 @@ function BreadcrumbsArea() {
         component={RouterLink}
         underline="hover"
         color="inherit"
-        to="/projects"
+        to="/"
+        sx={{ display: 'flex', alignItems: 'center' }}
+        aria-label="breadcrumb-home"
       >
-        Projects
+        <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+        Home
       </Link>
       {pathnames.map((value, index) => {
         const last = index === pathnames.length - 1;
         const to = `/${pathnames.slice(0, index + 1).join('/')}`;
-        // Don't show "projects" again if it's the first segment
-        if (value === 'projects') return null;
+        const displayName = names[value] || value;
 
+        // Skip "projects" if it's the first segment to avoid redundancy with Home if desired,
+        // but here we want to show it as the first step after Home.
+        
         return last ? (
-          <Typography color="text.primary" key={to}>
-            {value}
+          <Typography color="text.primary" key={to} aria-label={`breadcrumb-active`}>
+            {displayName}
           </Typography>
         ) : (
           <Link
@@ -1014,8 +1063,9 @@ function BreadcrumbsArea() {
             color="inherit"
             to={to}
             key={to}
+            aria-label={`breadcrumb-${value}`}
           >
-            {value}
+            {displayName}
           </Link>
         );
       })}
@@ -1299,7 +1349,9 @@ function App() {
   return (
     <BrowserRouter>
       {session?.userId ? (
-        <Layout session={session} onLogout={handleLogout} />
+        <BreadcrumbProvider>
+          <Layout session={session} onLogout={handleLogout} />
+        </BreadcrumbProvider>
       ) : (
         <AuthView onLogin={refreshSession} />
       )}
