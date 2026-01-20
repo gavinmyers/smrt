@@ -78,7 +78,26 @@ describe('CLI Integration Tests', () => {
     expect(authData.validated).toBe(true);
     expect(authData.projectId).toBe(projectId);
 
-    // 5. Verify Failure with Wrong Secret
+    // 6. Create Condition via CLI
+    const condRes = await app.inject({
+      method: 'POST',
+      url: `/api/cli/${projectId}/${keyId}/condition`,
+      headers: {
+        'x-cli-secret': token
+      },
+      payload: { 
+        name: 'CLI Condition',
+        message: 'Reported by CLI tool'
+      }
+    });
+
+    expect(condRes.statusCode).toBe(200);
+    const condData = condRes.json();
+    expect(condData.name).toBe('CLI Condition');
+    expect(condData.message).toBe('Reported by CLI tool');
+    expect(condData.projectId).toBe(projectId);
+
+    // 7. Verify Failure with Wrong Secret
     const failRes = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/check`,

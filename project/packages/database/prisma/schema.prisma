@@ -70,6 +70,7 @@ model KeyHash {
 model Condition {
   id        String   @id @default(uuid())
   name      String
+  message   String?
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
