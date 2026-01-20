@@ -97,7 +97,26 @@ describe('CLI Integration Tests', () => {
     expect(condData.message).toBe('Reported by CLI tool');
     expect(condData.projectId).toBe(projectId);
 
-    // 7. Verify Failure with Wrong Secret
+    // 7. Create Feature via CLI
+    const featRes = await app.inject({
+      method: 'POST',
+      url: `/api/cli/${projectId}/${keyId}/feature`,
+      headers: {
+        'x-cli-secret': token
+      },
+      payload: { 
+        name: 'CLI Feature',
+        message: 'Requested via CLI'
+      }
+    });
+
+    expect(featRes.statusCode).toBe(200);
+    const featData = featRes.json();
+    expect(featData.name).toBe('CLI Feature');
+    expect(featData.message).toBe('Requested via CLI');
+    expect(featData.projectId).toBe(projectId);
+
+    // 8. Verify Failure with Wrong Secret
     const failRes = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/check`,

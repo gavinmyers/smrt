@@ -171,7 +171,7 @@ export const projectRoutes = async (api: FastifyInstance) => {
     }
   );
 
-  api.post<{ Params: { projectId: string }; Body: { name: string } }>(
+  api.post<{ Params: { projectId: string }; Body: { name: string; message?: string } }>(
     '/session/project/:projectId/features',
     async (req, reply) => {
       if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
@@ -180,13 +180,14 @@ export const projectRoutes = async (api: FastifyInstance) => {
       return prisma.feature.create({
         data: {
           name: req.body.name,
+          message: req.body.message,
           projectId: req.params.projectId,
         },
       });
     }
   );
 
-  api.patch<{ Params: { projectId: string; id: string }; Body: { name: string } }>(
+  api.patch<{ Params: { projectId: string; id: string }; Body: { name: string; message?: string } }>(
     '/session/project/:projectId/features/:id',
     async (req, reply) => {
       if (!await ensureProjectAccess((req as any).sid, req.params.projectId)) {
@@ -194,7 +195,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
       }
       return prisma.feature.update({
         where: { id: req.params.id },
-        data: { name: req.body.name },
+        data: { 
+          name: req.body.name,
+          message: req.body.message, 
+        },
       });
     }
   );

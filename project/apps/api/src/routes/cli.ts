@@ -82,4 +82,45 @@ export const cliRoutes = async (api: FastifyInstance) => {
       return condition;
     }
   );
+
+  api.post<{ Params: { projectId: string; keyId: string }; Body: { name: string; message?: string }; Headers: { 'x-cli-secret': string } }>(
+    '/:projectId/:keyId/feature',
+    async (req, reply) => {
+      const { projectId, keyId } = req.params;
+      const secret = req.headers['x-cli-secret'];
+
+      if (!secret) {
+        return reply.status(401).send({ error: 'Missing x-cli-secret header' });
+      }
+
+      // 1. Fetch and Validate Key
+      const key = await prisma.key.findFirst({
+        where: { id: keyId, projectId },
+        include: { hash: true },
+      });
+
+      if (!key || !key.hash) {
+        return reply.status(404).send({ error: 'Key not found' });
+      }
+
+      const hash = crypto.createHash('sha256').update(secret).digest('hex');
+      if (hash !== key.hash.hash) {
+        return reply.status(401).send({ error: 'Invalid secret' });
+      }
+
+      // 2. Create Feature
+      const { name, message } = req.body;
+      if (!name) return reply.status(400).send({ error: 'Name is required' });
+
+      const feature = await prisma.feature.create({
+        data: {
+          name,
+          message,
+          projectId,
+        },
+      });
+
+      return feature;
+    }
+  );
 };
