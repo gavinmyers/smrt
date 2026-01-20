@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { buildApp } from '../src/app.js';
 import { prisma } from '@repo/database';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildApp } from '../src/app.js';
 
 describe('API Integration Tests', () => {
   let app;
@@ -40,26 +40,26 @@ describe('API Integration Tests', () => {
     const body = response.json();
     expect(body.email).toBe(email);
     expect(body.id).toBeDefined();
-    
+
     // Store for login test
     (global as any).testUser = { email, password: 'password123', id: body.id };
   });
 
   it('POST /api/open/user/login should return 200 and user info', async () => {
     const { email, password, id } = (global as any).testUser;
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/open/user/login',
       payload: { email, password },
     });
-    
+
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.id).toBe(id);
     expect(body.email).toBe(email);
-    
-    // Verify session was updated (requires mocking/checking DB directly or relying on cookie persistence in `inject` which is tricky without a cookie jar. 
+
+    // Verify session was updated (requires mocking/checking DB directly or relying on cookie persistence in `inject` which is tricky without a cookie jar.
     // Ideally we check the DB directly here since we have prisma access)
     // Note: app.inject doesn't automatically persist cookies between requests unless we handle them.
     // However, the `sid` logic in `index.ts` creates a NEW session if no cookie is sent.
@@ -68,61 +68,61 @@ describe('API Integration Tests', () => {
 
   it('POST /api/open/user/login should fail with invalid credentials', async () => {
     const { email } = (global as any).testUser;
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/open/user/login',
       payload: { email, password: 'wrongpassword' },
     });
-    
+
     expect(response.statusCode).toBe(401);
   });
 
   it('GET /api/session should return session info', async () => {
-     const response = await app.inject({
+    const response = await app.inject({
       method: 'GET',
       url: '/api/session',
     });
-    
+
     expect(response.statusCode).toBe(200);
     expect(response.json().sessionId).toBeDefined();
   });
 
   it('GET /api/session should return userId after login', async () => {
     const { email, password, id } = (global as any).testUser;
-    
+
     // Login again to ensure session is linked (in case previous tests messed state, though they shouldn't have)
     // Note: In a real integration test with cookies, we wouldn't need to re-login if the cookie jar was persisted.
     // Here we are just verifying the API behavior assuming the same 'sid' logic applies or we are testing the logic flow.
     // However, since `app.inject` resets cookies per request unless chained or managed, the 'sid' generated in this request
-    // will be NEW and NOT linked to the user. 
+    // will be NEW and NOT linked to the user.
     //
     // FIX: We need to simulate the flow within a single session or manually link the new session.
     // Since we can't easily share cookie state across `it` blocks with standard `app.inject` without a lot of boilerplate,
     // let's do a self-contained test for this scenario.
-    
+
     // 1. Create a user (or use existing)
     // 2. Login
     // 3. Get Session -> Check userId
-    
-    // Actually, let's just use the `onResponse` or cookie parsing to get the SID from the login response 
+
+    // Actually, let's just use the `onResponse` or cookie parsing to get the SID from the login response
     // and pass it to the session request.
-    
+
     const loginRes = await app.inject({
       method: 'POST',
       url: '/api/open/user/login',
       payload: { email, password },
     });
-    
+
     const cookies = loginRes.cookies; // access cookies from response
     const sidCookie = cookies.find((c: any) => c.name === 'sid');
-    
+
     const sessionRes = await app.inject({
       method: 'GET',
       url: '/api/session',
-      cookies: { sid: sidCookie.value }
+      cookies: { sid: sidCookie.value },
     });
-    
+
     expect(sessionRes.statusCode).toBe(200);
     expect(sessionRes.json().userId).toBe(id);
 
@@ -196,7 +196,10 @@ describe('API Integration Tests', () => {
       method: 'POST',
       url: '/api/session/project/create',
       headers,
-      payload: { name: 'Described Project', description: 'A project with goals.' },
+      payload: {
+        name: 'Described Project',
+        description: 'A project with goals.',
+      },
     });
     expect(createRes.statusCode).toBe(200);
     const project = createRes.json();

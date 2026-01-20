@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { buildApp } from '../src/app.js';
 import { prisma } from '@repo/database';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildApp } from '../src/app.js';
 
 describe('CLI CRUD Integration Tests', () => {
   let app;
@@ -59,17 +59,17 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/condition`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'List Me', message: 'test' }
+      payload: { name: 'List Me', message: 'test' },
     });
 
     const res = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/conditions`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
-    
+
     // Expecting failure initially as route doesn't exist
-    expect(res.statusCode).toBe(200); 
+    expect(res.statusCode).toBe(200);
     const data = res.json();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/condition`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'Update Me', message: 'original' }
+      payload: { name: 'Update Me', message: 'original' },
     });
     const id = createRes.json().id;
 
@@ -91,7 +91,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'PATCH',
       url: `/api/cli/${projectId}/${keyId}/condition/${id}`,
       headers: { 'x-cli-secret': token },
-      payload: { message: 'updated' }
+      payload: { message: 'updated' },
     });
 
     expect(res.statusCode).toBe(200);
@@ -105,7 +105,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/condition`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'Delete Me' }
+      payload: { name: 'Delete Me' },
     });
     const id = createRes.json().id;
 
@@ -113,16 +113,16 @@ describe('CLI CRUD Integration Tests', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/cli/${projectId}/${keyId}/condition/${id}`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
 
     expect(res.statusCode).toBe(200);
-    
+
     // Verify gone
     const listRes = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/conditions`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
     const list = listRes.json();
     expect(list.find((c: any) => c.id === id)).toBeUndefined();
@@ -136,15 +136,15 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/feature`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'List Me Feat', message: 'test' }
+      payload: { name: 'List Me Feat', message: 'test' },
     });
 
     const res = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/features`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
-    
+
     expect(res.statusCode).toBe(200);
     const data = res.json();
     expect(Array.isArray(data)).toBe(true);
@@ -157,7 +157,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/feature`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'Update Me Feat', message: 'original' }
+      payload: { name: 'Update Me Feat', message: 'original' },
     });
     const id = createRes.json().id;
 
@@ -166,7 +166,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'PATCH',
       url: `/api/cli/${projectId}/${keyId}/feature/${id}`,
       headers: { 'x-cli-secret': token },
-      payload: { message: 'updated' }
+      payload: { message: 'updated' },
     });
 
     expect(res.statusCode).toBe(200);
@@ -180,7 +180,7 @@ describe('CLI CRUD Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/feature`,
       headers: { 'x-cli-secret': token },
-      payload: { name: 'Delete Me Feat' }
+      payload: { name: 'Delete Me Feat' },
     });
     const id = createRes.json().id;
 
@@ -188,16 +188,16 @@ describe('CLI CRUD Integration Tests', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/cli/${projectId}/${keyId}/feature/${id}`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
 
     expect(res.statusCode).toBe(200);
-    
+
     // Verify gone
     const listRes = await app.inject({
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/features`,
-      headers: { 'x-cli-secret': token }
+      headers: { 'x-cli-secret': token },
     });
     const list = listRes.json();
     expect(list.find((f: any) => f.id === id)).toBeUndefined();

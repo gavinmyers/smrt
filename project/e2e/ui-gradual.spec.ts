@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('UI Gradual Integration', () => {
   const baseURL = `http://localhost:${process.env.VITE_PORT || '4173'}`;
@@ -14,7 +14,9 @@ test.describe('UI Gradual Integration', () => {
 
   test('Level 7: UI -> API - System Sentinel', async ({ page, request }) => {
     const user = { email: `ui7-${Date.now()}@test.com`, password: 'pw' };
-    await request.post(`/api/open/user/register`, { data: { ...user, name: 'UI User' } });
+    await request.post(`/api/open/user/register`, {
+      data: { ...user, name: 'UI User' },
+    });
     await page.request.post(`/api/open/user/login`, { data: user });
 
     await page.goto('/system');
@@ -23,9 +25,14 @@ test.describe('UI Gradual Integration', () => {
     await expect(apiSentinel).toHaveText('SMRT-V1-READY', { timeout: 10000 });
   });
 
-  test('Level 8: UI -> API -> DB - Database Sentinel', async ({ page, request }) => {
+  test('Level 8: UI -> API -> DB - Database Sentinel', async ({
+    page,
+    request,
+  }) => {
     const user = { email: `ui8-${Date.now()}@test.com`, password: 'pw' };
-    await request.post(`/api/open/user/register`, { data: { ...user, name: 'UI User' } });
+    await request.post(`/api/open/user/register`, {
+      data: { ...user, name: 'UI User' },
+    });
     await page.request.post(`/api/open/user/login`, { data: user });
 
     await page.goto('/system');
@@ -37,13 +44,15 @@ test.describe('UI Gradual Integration', () => {
   test('Level 9: Full Stack - Project Inventory', async ({ page, request }) => {
     // 1. Create and Login
     const user = { email: `ui9-${Date.now()}@test.com`, password: 'pw' };
-    await request.post(`/api/open/user/register`, { data: { ...user, name: 'UI User' } });
+    await request.post(`/api/open/user/register`, {
+      data: { ...user, name: 'UI User' },
+    });
     await page.request.post(`/api/open/user/login`, { data: user });
 
     await page.goto('/projects');
     // Verifies UI -> Proxy -> API -> DB
     await expect(page.getByText('Project Inventory')).toBeVisible();
-    
+
     // Check that we aren't seeing an error alert
     const errorAlert = page.locator('.MuiAlert-message');
     await expect(errorAlert).not.toBeVisible();

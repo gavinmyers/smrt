@@ -1,10 +1,10 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
-import { authRoutes } from './routes/auth.js';
-import { projectRoutes } from './routes/projects.js';
-import { cliRoutes } from './routes/cli.js';
 import { sessionHook } from './hooks/session.js';
+import { authRoutes } from './routes/auth.js';
+import { cliRoutes } from './routes/cli.js';
+import { projectRoutes } from './routes/projects.js';
 
 export const buildApp = async () => {
   const app = Fastify({
@@ -22,7 +22,8 @@ export const buildApp = async () => {
 
   await app.register(cookie, {
     secret:
-      process.env.COOKIE_SECRET || 'dev-secret-at-least-32-chars-long-and-secure',
+      process.env.COOKIE_SECRET ||
+      'dev-secret-at-least-32-chars-long-and-secure',
   });
 
   // Global Session Initialization

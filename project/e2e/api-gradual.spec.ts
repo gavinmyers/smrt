@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('API Gradual Integration', () => {
   const baseURL = `http://localhost:${process.env.PORT || '3001'}`;
@@ -10,7 +10,9 @@ test.describe('API Gradual Integration', () => {
     expect(data.status).toBe('ok');
   });
 
-  test('Level 4: Isolated Logic - API Sentinel (No DB)', async ({ request }) => {
+  test('Level 4: Isolated Logic - API Sentinel (No DB)', async ({
+    request,
+  }) => {
     const response = await request.get(`${baseURL}/api/open/health/api`);
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
@@ -24,32 +26,44 @@ test.describe('API Gradual Integration', () => {
     expect(data.sentinel).toBe('SMRT-V1-READY');
   });
 
-  test('Level 11: API Key Lifecycle and Secret Isolation', async ({ request }) => {
+  test('Level 11: API Key Lifecycle and Secret Isolation', async ({
+    request,
+  }) => {
     // 1. Create and Login
     const user = { email: `key-${Date.now()}@test.com`, password: 'pw' };
-    await request.post(`${baseURL}/api/open/user/register`, { data: { ...user, name: 'Key User' } });
+    await request.post(`${baseURL}/api/open/user/register`, {
+      data: { ...user, name: 'Key User' },
+    });
     await request.post(`${baseURL}/api/open/user/login`, { data: user });
 
     // 2. Create a dummy project
-    const projectRes = await request.post(`${baseURL}/api/session/project/create`, { data: { name: 'Key Test Project' } });
+    const projectRes = await request.post(
+      `${baseURL}/api/session/project/create`,
+      { data: { name: 'Key Test Project' } },
+    );
     const project = await projectRes.json();
     const projectId = project.id;
 
     // 3. Create a key
-    const createRes = await request.post(`${baseURL}/api/session/project/${projectId}/keys`, { data: { name: 'Test Key' } });
+    const createRes = await request.post(
+      `${baseURL}/api/session/project/${projectId}/keys`,
+      { data: { name: 'Test Key' } },
+    );
     expect(createRes.ok()).toBeTruthy();
     const keyBlob = await createRes.json();
-    
+
     expect(keyBlob.secret).toBeDefined();
     expect(keyBlob.keyId).toBeDefined();
     expect(keyBlob.projectId).toBe(projectId);
     expect(keyBlob.apiUrl).toContain('/api/cli');
 
     // 4. List keys - verify secret is NOT returned
-    const listRes = await request.get(`${baseURL}/api/session/project/${projectId}/keys`);
+    const listRes = await request.get(
+      `${baseURL}/api/session/project/${projectId}/keys`,
+    );
     const keys = await listRes.json();
     const foundKey = keys.find((k: any) => k.id === keyBlob.keyId);
-    
+
     expect(foundKey).toBeDefined();
     expect(foundKey.keyHash).toBeUndefined();
     expect((foundKey as any).secret).toBeUndefined();

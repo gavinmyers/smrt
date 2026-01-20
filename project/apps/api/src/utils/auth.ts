@@ -1,6 +1,6 @@
-import { prisma } from '@repo/database';
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
+import { prisma } from '@repo/database';
 
 export const scrypt = promisify(crypto.scrypt);
 

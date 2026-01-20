@@ -1,8 +1,8 @@
 /// <reference types="vitest" />
 
+import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
-import path from 'node:path';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {

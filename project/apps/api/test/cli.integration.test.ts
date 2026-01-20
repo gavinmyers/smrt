@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { buildApp } from '../src/app.js';
 import { prisma } from '@repo/database';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildApp } from '../src/app.js';
 
 describe('CLI Integration Tests', () => {
   let app;
@@ -69,8 +69,8 @@ describe('CLI Integration Tests', () => {
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/check`,
       headers: {
-        'x-cli-secret': token
-      }
+        'x-cli-secret': token,
+      },
     });
 
     expect(authRes.statusCode).toBe(200);
@@ -83,12 +83,12 @@ describe('CLI Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/condition`,
       headers: {
-        'x-cli-secret': token
+        'x-cli-secret': token,
       },
-      payload: { 
+      payload: {
         name: 'CLI Condition',
-        message: 'Reported by CLI tool'
-      }
+        message: 'Reported by CLI tool',
+      },
     });
 
     expect(condRes.statusCode).toBe(200);
@@ -102,12 +102,12 @@ describe('CLI Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/feature`,
       headers: {
-        'x-cli-secret': token
+        'x-cli-secret': token,
       },
-      payload: { 
+      payload: {
         name: 'CLI Feature',
-        message: 'Requested via CLI'
-      }
+        message: 'Requested via CLI',
+      },
     });
 
     expect(featRes.statusCode).toBe(200);
@@ -121,8 +121,8 @@ describe('CLI Integration Tests', () => {
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/check`,
       headers: {
-        'x-cli-secret': 'sk_wrongtoken12345'
-      }
+        'x-cli-secret': 'sk_wrongtoken12345',
+      },
     });
     expect(failRes.statusCode).toBe(401);
   });

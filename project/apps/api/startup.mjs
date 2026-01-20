@@ -32,89 +32,119 @@ async function main() {
   console.log(`Targeting Database: ${dbHost}:${dbPort}`);
 
   // 2. Wait for DB Network
-  const waitForDB = () => new Promise((resolve) => {
-    const attempt = () => {
-      console.log('Waiting for database network...');
-      const socket = createConnection({ host: dbHost, port: dbPort }, () => {
-        socket.end();
-        resolve();
-      });
-      socket.on('error', () => {
-        setTimeout(attempt, 2000);
-      });
-    };
-    attempt();
-  });
+  const waitForDB = () =>
+    new Promise((resolve) => {
+      const attempt = () => {
+        console.log('Waiting for database network...');
+        const socket = createConnection({ host: dbHost, port: dbPort }, () => {
+          socket.end();
+          resolve();
+        });
+        socket.on('error', () => {
+          setTimeout(attempt, 2000);
+        });
+      };
+      attempt();
+    });
 
   await waitForDB();
   console.log('Database network is UP.');
 
   // 3. Self-Healing Schema Push
-  if (process.env.NODE_ENV !== 'production' || process.env.AUTO_MIGRATE === 'true') {
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.AUTO_MIGRATE === 'true'
+  ) {
     console.log('Synchronizing database schema (Self-Healing)...');
-    
+
     const possibleConfigPaths = [
       path.join(__dirname, '..', '..', 'prisma.config.ts'),
-      path.join(process.cwd(), 'prisma.config.ts')
+      path.join(process.cwd(), 'prisma.config.ts'),
     ];
-    const configPath = possibleConfigPaths.find(p => existsSync(p));
+    const configPath = possibleConfigPaths.find((p) => existsSync(p));
 
     if (configPath) {
-       console.log(`Found prisma config at: ${configPath}`);
-       const configDir = path.dirname(configPath);
-       try {
-         console.log(`Executing migrations via prisma.config.ts from: ${configDir}`);
-         execSync(`npx prisma db push --accept-data-loss`, {
-           stdio: 'inherit',
-           cwd: configDir,
-           env: {
-             ...process.env,
-             PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true'
-           }
-         });
-         console.log('Schema synchronization complete.');
-       } catch (err) {
-         console.error('Schema synchronization failed, but continuing start...');
-         console.error(err);
-       }
+      console.log(`Found prisma config at: ${configPath}`);
+      const configDir = path.dirname(configPath);
+      try {
+        console.log(
+          `Executing migrations via prisma.config.ts from: ${configDir}`,
+        );
+        execSync(`npx prisma db push --accept-data-loss`, {
+          stdio: 'inherit',
+          cwd: configDir,
+          env: {
+            ...process.env,
+            PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true',
+          },
+        });
+        console.log('Schema synchronization complete.');
+      } catch (err) {
+        console.error('Schema synchronization failed, but continuing start...');
+        console.error(err);
+      }
     } else {
-        const possiblePaths = [
-        path.join(__dirname, '..', '..', 'packages', 'database', 'prisma', 'schema.prisma'),
-        path.join(process.cwd(), 'packages', 'database', 'prisma', 'schema.prisma'),
-        path.join(process.cwd(), 'schema.prisma')
-        ];
+      const possiblePaths = [
+        path.join(
+          __dirname,
+          '..',
+          '..',
+          'packages',
+          'database',
+          'prisma',
+          'schema.prisma',
+        ),
+        path.join(
+          process.cwd(),
+          'packages',
+          'database',
+          'prisma',
+          'schema.prisma',
+        ),
+        path.join(process.cwd(), 'schema.prisma'),
+      ];
 
-        let schemaPath = possiblePaths.find(p => existsSync(p));
+      const schemaPath = possiblePaths.find((p) => existsSync(p));
 
-        if (schemaPath) {
+      if (schemaPath) {
         console.log(`Found schema at: ${schemaPath}`);
         try {
-            let packageRoot = path.dirname(schemaPath);
-            while (packageRoot !== path.parse(packageRoot).root && !existsSync(path.join(packageRoot, 'package.json'))) {
+          let packageRoot = path.dirname(schemaPath);
+          while (
+            packageRoot !== path.parse(packageRoot).root &&
+            !existsSync(path.join(packageRoot, 'package.json'))
+          ) {
             packageRoot = path.dirname(packageRoot);
-            }
-            
-            if (!existsSync(path.join(packageRoot, 'package.json'))) {
-                packageRoot = process.cwd(); 
-            }
+          }
 
-            console.log(`Executing migrations from: ${packageRoot}`);
+          if (!existsSync(path.join(packageRoot, 'package.json'))) {
+            packageRoot = process.cwd();
+          }
 
-            execSync(`pnpm exec prisma db push --schema "${schemaPath}" --accept-data-loss`, {
-            stdio: 'inherit',
-            cwd: packageRoot,
-            env: {
+          console.log(`Executing migrations from: ${packageRoot}`);
+
+          execSync(
+            `pnpm exec prisma db push --schema "${schemaPath}" --accept-data-loss`,
+            {
+              stdio: 'inherit',
+              cwd: packageRoot,
+              env: {
                 ...process.env,
-                PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true'
-            }
-            });
-            console.log('Schema synchronization complete.');
+                PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true',
+              },
+            },
+          );
+          console.log('Schema synchronization complete.');
         } catch (err) {
-            console.error('Schema synchronization failed, but continuing start...');
+          console.error(
+            'Schema synchronization failed, but continuing start...',
+          );
         }
-        } else {
-        console.warn('WARNING: Could not find prisma schema for self-healing. Skipping.');
-        }
+      } else {
+        console.warn(
+          'WARNING: Could not find prisma schema for self-healing. Skipping.',
+        );
+      }
     }
   }
 
@@ -122,13 +152,13 @@ async function main() {
   console.log('Starting SMRT API...');
   const apiPath = path.join(__dirname, 'dist', 'index.js');
   const child = spawn('node', [apiPath], { stdio: 'inherit' });
-  
+
   child.on('exit', (code) => {
     process.exit(code || 0);
   });
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

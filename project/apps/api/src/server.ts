@@ -1,6 +1,6 @@
 import { prisma } from '@repo/database';
-import { buildApp } from './app.js';
 import { pathToFileURL } from 'url';
+import { buildApp } from './app.js';
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const start = async () => {

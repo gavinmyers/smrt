@@ -25,7 +25,9 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         PORT: process.env.PORT || '3001',
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5434/smrt_test?schema=public',
+        DATABASE_URL:
+          process.env.DATABASE_URL ||
+          'postgresql://postgres:postgres@localhost:5434/smrt_test?schema=public',
         DB_HOST: 'localhost',
         DB_PORT: '5434',
       },

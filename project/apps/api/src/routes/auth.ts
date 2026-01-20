@@ -1,6 +1,6 @@
-import { prisma } from '@repo/database';
 import crypto from 'node:crypto';
-import { FastifyInstance } from 'fastify';
+import { prisma } from '@repo/database';
+import type { FastifyInstance } from 'fastify';
 import { scrypt } from '../utils/auth.js';
 
 export const authRoutes = async (api: FastifyInstance) => {
@@ -14,7 +14,9 @@ export const authRoutes = async (api: FastifyInstance) => {
       const { email, password, name } = req.body;
 
       if (!email || !password) {
-        return reply.status(400).send({ error: 'Email and password are required' });
+        return reply
+          .status(400)
+          .send({ error: 'Email and password are required' });
       }
 
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -51,7 +53,7 @@ export const authRoutes = async (api: FastifyInstance) => {
       });
 
       return reply.status(201).send(user);
-    }
+    },
   );
 
   api.post<{ Body: { email: string; password: string } }>(
@@ -60,7 +62,9 @@ export const authRoutes = async (api: FastifyInstance) => {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return reply.status(400).send({ error: 'Email and password are required' });
+        return reply
+          .status(400)
+          .send({ error: 'Email and password are required' });
       }
 
       const user = await prisma.user.findUnique({
@@ -88,7 +92,7 @@ export const authRoutes = async (api: FastifyInstance) => {
 
       const { hash, ...userWithoutHash } = user;
       return reply.send(userWithoutHash);
-    }
+    },
   );
 
   api.post('/user/logout', async (req, reply) => {

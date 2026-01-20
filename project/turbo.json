@@ -9,7 +9,15 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["DATABASE_URL", "PORT", "HOST", "CORS_ORIGIN", "API_URL", "VITE_PORT", "LOG_LEVEL"]
+      "env": [
+        "DATABASE_URL",
+        "PORT",
+        "HOST",
+        "CORS_ORIGIN",
+        "API_URL",
+        "VITE_PORT",
+        "LOG_LEVEL"
+      ]
     },
     "test": {
       "dependsOn": ["build"],
