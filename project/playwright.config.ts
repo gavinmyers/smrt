@@ -21,10 +21,10 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter api build && pnpm --filter api start',
-      url: `http://localhost:${process.env.PORT || '3001'}/api/open/status/health`,
+      url: `http://localhost:${process.env.API_PORT || process.env.PORT || '3001'}/api/open/status/health`,
       reuseExistingServer: !process.env.CI,
       env: {
-        PORT: process.env.PORT || '3001',
+        PORT: process.env.API_PORT || process.env.PORT || '3001',
         DATABASE_URL:
           process.env.DATABASE_URL ||
           'postgresql://postgres:postgres@localhost:5434/smrt_test?schema=public',
@@ -38,7 +38,7 @@ export default defineConfig({
       url: `http://localhost:${process.env.VITE_PORT || '4173'}`,
       reuseExistingServer: !process.env.CI,
       env: {
-        VITE_API_URL: `http://localhost:${process.env.PORT || '3001'}`,
+        VITE_API_URL: `http://localhost:${process.env.API_PORT || process.env.PORT || '3001'}`,
       },
       timeout: 120_000,
     },

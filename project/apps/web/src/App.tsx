@@ -1251,7 +1251,7 @@ function Layout({ session, onLogout }: { session: any; onLogout: () => void }) {
           </Typography>
         </Box>
 
-        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
+        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3, minHeight: 0 }}>
           <Routes>
             {' '}
             <Route path="/projects" element={<ProjectsView />} />

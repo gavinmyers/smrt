@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { scrypt } from '../utils/auth.js';
 
 export const authRoutes = async (api: FastifyInstance) => {
-  api.get('/status/health', async (req, reply) => {
+  api.get('/status/health', async (_req, _reply) => {
     return { status: 'ok' };
   });
 

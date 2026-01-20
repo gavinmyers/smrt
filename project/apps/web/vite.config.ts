@@ -8,7 +8,7 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
   // Load env file from project root
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), '');
-  const port = parseInt(env.VITE_PORT || '5173');
+  const port = parseInt(env.VITE_PORT || '5173', 10);
 
   return {
     plugins: [react()],
