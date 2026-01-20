@@ -22,7 +22,7 @@ async function main() {
       const url = new URL(dbUrl.replace('postgresql://', 'http://'));
       dbHost = dbHost || url.hostname;
       dbPort = dbPort || Number(url.port) || 5432;
-    } catch (e) {
+    } catch (_e) {
       dbHost = dbHost || 'db';
       dbPort = dbPort || 5432;
     }
@@ -135,7 +135,7 @@ async function main() {
             },
           );
           console.log('Schema synchronization complete.');
-        } catch (err) {
+        } catch (_err) {
           console.error(
             'Schema synchronization failed, but continuing start...',
           );
@@ -150,7 +150,7 @@ async function main() {
 
   // 4. Start API
   console.log('Starting SMRT API...');
-  const apiPath = path.join(__dirname, 'dist', 'index.js');
+  const apiPath = path.join(__dirname, 'dist', 'server.js');
   const child = spawn('node', [apiPath], { stdio: 'inherit' });
 
   child.on('exit', (code) => {
