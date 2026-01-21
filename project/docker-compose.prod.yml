@@ -1,0 +1,87 @@
+name: smrt-prod
+
+services:
+  smrt-db-prod:
+    image: postgres:17-alpine
+    container_name: smrt-db-prod
+    restart: unless-stopped
+    networks:
+      - smrt-internal
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${EXTERNAL_DB_PORT}:${INTERNAL_DB_PORT}"
+    volumes:
+      - /media/gavin/storage1tb/containers/smrt/postgres/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  smrt-api-prod:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: smrt-api-prod
+    container_name: smrt-api-prod
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@smrt-db-prod:${INTERNAL_DB_PORT}/${DB_NAME}?schema=public"
+      LOG_LEVEL: ${LOG_LEVEL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      PORT: ${INTERNAL_PORT}
+      HOST: ${HOST}
+      CLI_URL: ${CLI_URL}
+      AUTO_MIGRATE: "true"
+    depends_on:
+      smrt-db-prod:
+        condition: service_healthy
+    networks:
+      - shared-proxy
+      - smrt-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smrt-api.rule=Host(`smrt-api.357graphics.com`)"
+      - "traefik.http.routers.smrt-api.entrypoints=websecure"
+      - "traefik.http.routers.smrt-api.tls=true"
+      - "traefik.http.routers.smrt-api.tls.certresolver=le"
+      - "traefik.http.routers.smrt-api.tls.domains[0].main=*.357graphics.com"
+      - "traefik.http.services.smrt-api.loadbalancer.server.port=${INTERNAL_PORT}"
+
+  smrt-web-prod:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: smrt-web-prod
+    container_name: smrt-web-prod
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      API_PROXY_URL: ${API_PROXY_URL}
+    depends_on:
+      - smrt-api-prod
+    networks:
+      - shared-proxy
+    volumes:
+      - /media/gavin/storage1tb/containers/smrt/web/nginx-log:/var/log/nginx
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smrt-web.rule=Host(`smrt.357graphics.com`)"
+      - "traefik.http.routers.smrt-web.entrypoints=websecure"
+      - "traefik.http.routers.smrt-web.tls=true"
+      - "traefik.http.routers.smrt-web.tls.certresolver=le"
+      - "traefik.http.routers.smrt-web.tls.domains[0].main=*.357graphics.com"
+      - "traefik.http.services.smrt-web.loadbalancer.server.port=80"
+
+networks:
+  shared-proxy:
+    external: true
+  smrt-internal:
+    driver: bridge

@@ -5,7 +5,7 @@
   "scripts": {
     "local": "docker compose -f docker-compose.local.yml --env-file .env.local --env-file .env.local.secrets up -d --wait --remove-orphans && pnpm run db:push && dotenv -e .env.local -e .env.local.secrets -- pnpm exec turbo dev",
     "dev": "docker compose -f docker-compose.dev.yml --env-file .env.dev --env-file .env.dev.secrets up --build --wait --remove-orphans",
-    "prod": "docker compose -f docker-compose.yml --env-file .env.prod --env-file .env.prod.secrets up --build --wait --remove-orphans",
+    "prod": "docker compose -f docker-compose.prod.yml --env-file .env.prod --env-file .env.prod.secrets up --build -d --remove-orphans",
     "test": "pnpm run build && docker compose -f docker-compose.test.yml --env-file .env.test --env-file .env.test.secrets up -d --wait --build --renew-anon-volumes --remove-orphans && pnpm run db:reset && pnpm run test:unit && pnpm run test:e2e && docker compose -f docker-compose.test.yml --env-file .env.test --env-file .env.test.secrets down --volumes --remove-orphans",
     "build": "pnpm exec turbo build",
     "db:migrate": "dotenv -e .env.local -e .env.local.secrets -- pnpm exec prisma migrate dev --schema ./packages/database/prisma/schema.prisma",
