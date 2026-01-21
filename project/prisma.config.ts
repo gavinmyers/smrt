@@ -14,11 +14,15 @@ if (fs.existsSync('.env.db')) {
   const secretsFile = `${envFile}.secrets`;
 
   if (fs.existsSync(envFile)) dotenv.config({ path: envFile, override: true });
-  if (fs.existsSync(secretsFile)) dotenv.config({ path: secretsFile, override: true });
+  if (fs.existsSync(secretsFile))
+    dotenv.config({ path: secretsFile, override: true });
 }
 
-const isDocker = fs.existsSync('/.dockerenv') || process.env.IS_DOCKER === 'true';
-const dbUrl = (isDocker ? process.env.DATABASE_URL : process.env.LOCAL_DATABASE_URL) || process.env.DATABASE_URL;
+const isDocker =
+  fs.existsSync('/.dockerenv') || process.env.IS_DOCKER === 'true';
+const dbUrl =
+  (isDocker ? process.env.DATABASE_URL : process.env.LOCAL_DATABASE_URL) ||
+  process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: 'packages/database/prisma/schema.prisma',

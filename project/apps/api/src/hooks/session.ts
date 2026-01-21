@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { prisma } from '@repo/database';
 import type { FastifyInstance } from 'fastify';
+import type { AuthenticatedRequest } from '../types.js';
 
 /**
  * Global Session Hook
@@ -23,7 +24,7 @@ export const sessionHook = async (app: FastifyInstance) => {
     }
 
     // Attach sid to request object so endpoints can use it even if it's not in cookies yet
-    (req as any).sid = sid;
+    (req as unknown as AuthenticatedRequest).sid = sid;
     req.log.debug(
       `[Session] SID: ${sid} (New: ${isNew}) for ${req.method} ${req.url}`,
     );

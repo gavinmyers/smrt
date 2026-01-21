@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { prisma } from '@repo/database';
 import type { FastifyInstance } from 'fastify';
+import type { AuthenticatedRequest } from '../types.js';
 import { scrypt } from '../utils/auth.js';
 
 export const authRoutes = async (api: FastifyInstance) => {
@@ -17,7 +18,8 @@ export const authRoutes = async (api: FastifyInstance) => {
       await prisma.$queryRaw`SELECT 1`;
       return { sentinel: 'SMRT-V1-READY' };
     } catch (e) {
-      return _reply.status(500).send({ sentinel: 'OFFLINE', error: (e as any).message });
+      const message = e instanceof Error ? e.message : 'Unknown database error';
+      return _reply.status(500).send({ sentinel: 'OFFLINE', error: message });
     }
   });
 
@@ -60,10 +62,13 @@ export const authRoutes = async (api: FastifyInstance) => {
       });
 
       // Auto-login after register
-      await prisma.sessionCounter.update({
-        where: { sessionId: (req as any).sid },
-        data: { userId: user.id },
-      });
+      const sid = (req as unknown as AuthenticatedRequest).sid;
+      if (sid) {
+        await prisma.sessionCounter.update({
+          where: { sessionId: sid },
+          data: { userId: user.id },
+        });
+      }
 
       return reply.status(201).send(user);
     },
@@ -98,10 +103,13 @@ export const authRoutes = async (api: FastifyInstance) => {
       }
 
       // Link session to user
-      await prisma.sessionCounter.update({
-        where: { sessionId: (req as any).sid },
-        data: { userId: user.id },
-      });
+      const sid = (req as unknown as AuthenticatedRequest).sid;
+      if (sid) {
+        await prisma.sessionCounter.update({
+          where: { sessionId: sid },
+          data: { userId: user.id },
+        });
+      }
 
       const { hash, ...userWithoutHash } = user;
       return reply.send({ success: true, user: userWithoutHash });
@@ -109,10 +117,13 @@ export const authRoutes = async (api: FastifyInstance) => {
   );
 
   api.post('/user/logout', async (req, reply) => {
-    await prisma.sessionCounter.update({
-      where: { sessionId: (req as any).sid },
-      data: { userId: null },
-    });
+    const sid = (req as unknown as AuthenticatedRequest).sid;
+    if (sid) {
+      await prisma.sessionCounter.update({
+        where: { sessionId: sid },
+        data: { userId: null },
+      });
+    }
     return reply.send({ status: 'ok' });
   });
 };

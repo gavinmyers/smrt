@@ -21,7 +21,7 @@ test.describe('User Gradual Integration', () => {
     expect(user.id).toBeDefined();
 
     // 2. Verify List Users does NOT leak hash
-    const listRes = await request.get(`${baseURL}/api/open/users`); // Wait, I moved users to session? No, let's check.
+    const _listRes = await request.get(`${baseURL}/api/open/users`); // Wait, I moved users to session? No, let's check.
     // Actually, I put users in /users at root? Let me check index.ts.
     // Ah, I put app.get('/users') outside of any register in previous turns, but in my latest replacement I missed it.
     // I should probably put it in /api/open or /api/session.
@@ -30,10 +30,10 @@ test.describe('User Gradual Integration', () => {
     const usersRes = await request.get(`${baseURL}/api/open/users`);
     if (usersRes.ok()) {
       const users = await usersRes.json();
-      const found = users.find((u: any) => u.id === user.id);
+      const found = users.find((u: { id: string }) => u.id === user.id);
       expect(found).toBeDefined();
-      expect(found.hash).toBeUndefined();
-      expect(found.password).toBeUndefined();
+      expect((found as { hash?: string }).hash).toBeUndefined();
+      expect((found as { password?: string }).password).toBeUndefined();
     }
 
     // 3. Login - verifying validateUserHash internally
@@ -64,19 +64,19 @@ test.describe('User Gradual Integration', () => {
     const resA = await request.post(`${baseURL}/api/open/user/register`, {
       data: { ...userA, name: 'User A' },
     });
-    const userDataA = await resA.json();
+    const _userDataA = await resA.json();
 
     const resB = await request.post(`${baseURL}/api/open/user/register`, {
       data: { ...userB, name: 'User B' },
     });
-    const userDataB = await resB.json();
+    const _userDataB = await resB.json();
 
     // Login as A to create Project A
     await request.post(`${baseURL}/api/open/user/login`, { data: userA });
     const projA = await request.post(`${baseURL}/api/session/project/create`, {
       data: { name: 'Project A' },
     });
-    const projectDataA = await projA.json();
+    const _projectDataA = await projA.json();
 
     // Login as B to create Project B
     await context.clearCookies();
@@ -84,7 +84,7 @@ test.describe('User Gradual Integration', () => {
     const projB = await request.post(`${baseURL}/api/session/project/create`, {
       data: { name: 'Project B' },
     });
-    const projectDataB = await projB.json();
+    const _projectDataB = await projB.json();
 
     // --- TEST USER A ---
     await context.clearCookies();

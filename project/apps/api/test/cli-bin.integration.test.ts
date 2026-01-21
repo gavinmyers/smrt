@@ -2,15 +2,16 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from '@repo/database';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 
 describe('CLI Binary Integration Tests', () => {
-  let app;
-  let projectId;
-  let keyId;
-  let secret;
-  let tempKeyPath;
+  let app: FastifyInstance;
+  let projectId: string;
+  let keyId: string;
+  let secret: string;
+  let tempKeyPath: string;
   const cliDir = path.resolve(process.cwd(), '../../../smrt-cli');
 
   beforeAll(async () => {
@@ -93,7 +94,10 @@ describe('CLI Binary Integration Tests', () => {
 
   it('Full Condition Workflow', () => {
     // 1. Create
-    const createOut = runCli('condition-create.js', '"Bin Condition" "Bin Msg"');
+    const createOut = runCli(
+      'condition-create.js',
+      '"Bin Condition" "Bin Msg"',
+    );
     expect(createOut).toContain('Created condition');
     const conditionId = createOut.match(/\[(.*?)\]/)[1];
 
@@ -103,7 +107,10 @@ describe('CLI Binary Integration Tests', () => {
     expect(listOut).toContain(conditionId);
 
     // 3. Update
-    const updateOut = runCli('condition-update.js', `${conditionId} "Updated Name"`);
+    const updateOut = runCli(
+      'condition-update.js',
+      `${conditionId} "Updated Name"`,
+    );
     expect(updateOut).toContain('Updated condition');
 
     // 4. Delete

@@ -1,9 +1,22 @@
 import { prisma } from '@repo/database';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 
+interface TestUser {
+  email: string;
+  password?: string;
+  id?: string;
+}
+
+// Extend global type for test context
+declare global {
+  var testUser: TestUser;
+  var authCookie: string;
+}
+
 describe('API Integration Tests', () => {
-  let app;
+  let app: FastifyInstance;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -42,11 +55,11 @@ describe('API Integration Tests', () => {
     expect(body.id).toBeDefined();
 
     // Store for login test
-    (global as any).testUser = { email, password: 'password123', id: body.id };
+    global.testUser = { email, password: 'password123', id: body.id };
   });
 
   it('POST /api/open/user/login should return 200 and user info', async () => {
-    const { email, password, id } = (global as any).testUser;
+    const { email, password, id } = global.testUser;
 
     const response = await app.inject({
       method: 'POST',
@@ -58,16 +71,10 @@ describe('API Integration Tests', () => {
     const body = response.json();
     expect(body.user.id).toBe(id);
     expect(body.user.email).toBe(email);
-
-    // Verify session was updated (requires mocking/checking DB directly or relying on cookie persistence in `inject` which is tricky without a cookie jar.
-    // Ideally we check the DB directly here since we have prisma access)
-    // Note: app.inject doesn't automatically persist cookies between requests unless we handle them.
-    // However, the `sid` logic in `index.ts` creates a NEW session if no cookie is sent.
-    // To test session linking properly in `inject`, we need to capture the cookie.
   });
 
   it('POST /api/open/user/login should fail with invalid credentials', async () => {
-    const { email } = (global as any).testUser;
+    const { email } = global.testUser;
 
     const response = await app.inject({
       method: 'POST',
@@ -89,24 +96,7 @@ describe('API Integration Tests', () => {
   });
 
   it('GET /api/session should return userId after login', async () => {
-    const { email, password, id } = (global as any).testUser;
-
-    // Login again to ensure session is linked (in case previous tests messed state, though they shouldn't have)
-    // Note: In a real integration test with cookies, we wouldn't need to re-login if the cookie jar was persisted.
-    // Here we are just verifying the API behavior assuming the same 'sid' logic applies or we are testing the logic flow.
-    // However, since `app.inject` resets cookies per request unless chained or managed, the 'sid' generated in this request
-    // will be NEW and NOT linked to the user.
-    //
-    // FIX: We need to simulate the flow within a single session or manually link the new session.
-    // Since we can't easily share cookie state across `it` blocks with standard `app.inject` without a lot of boilerplate,
-    // let's do a self-contained test for this scenario.
-
-    // 1. Create a user (or use existing)
-    // 2. Login
-    // 3. Get Session -> Check userId
-
-    // Actually, let's just use the `onResponse` or cookie parsing to get the SID from the login response
-    // and pass it to the session request.
+    const { email, password, id } = global.testUser;
 
     const loginRes = await app.inject({
       method: 'POST',
@@ -115,7 +105,11 @@ describe('API Integration Tests', () => {
     });
 
     const cookies = loginRes.cookies; // access cookies from response
-    const sidCookie = cookies.find((c: any) => c.name === 'sid');
+    const sidCookie = cookies.find((c) => c.name === 'sid');
+
+    if (!sidCookie) {
+      throw new Error('SID cookie not found in login response');
+    }
 
     const sessionRes = await app.inject({
       method: 'GET',
@@ -127,11 +121,11 @@ describe('API Integration Tests', () => {
     expect(sessionRes.json().userId).toBe(id);
 
     // Save cookie for subsequent requests
-    (global as any).authCookie = sidCookie.value;
+    global.authCookie = sidCookie.value;
   });
 
   it('Project Management Flow', async () => {
-    const cookie = (global as any).authCookie;
+    const cookie = global.authCookie;
     const headers = { cookie: `sid=${cookie}` };
 
     // 1. Create Project
@@ -188,7 +182,7 @@ describe('API Integration Tests', () => {
   });
 
   it('Project Management Flow with Description', async () => {
-    const cookie = (global as any).authCookie;
+    const cookie = global.authCookie;
     const headers = { cookie: `sid=${cookie}` };
 
     // 1. Create Project with Description

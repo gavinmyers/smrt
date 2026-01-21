@@ -1,9 +1,10 @@
 import { prisma } from '@repo/database';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 
 describe('CLI Integration Tests', () => {
-  let app;
+  let app: FastifyInstance;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -33,7 +34,9 @@ describe('CLI Integration Tests', () => {
       payload: { email, password: 'password123' },
     });
     const cookies = loginRes.cookies;
-    const sidCookie = cookies.find((c: any) => c.name === 'sid');
+    const sidCookie = cookies.find((c: { name: string }) => c.name === 'sid');
+    if (!sidCookie) throw new Error('SID cookie not found');
+
     const headers = { cookie: `sid=${sidCookie.value}` };
 
     // 2. Create Project

@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.VITE_API_URL || env.API_URL;
 
   if (!portStr || !apiUrl) {
-    throw new Error('VITE_PORT and (VITE_API_URL or API_URL) environment variables are required');
+    throw new Error(
+      'VITE_PORT and (VITE_API_URL or API_URL) environment variables are required',
+    );
   }
 
   const port = parseInt(portStr, 10);

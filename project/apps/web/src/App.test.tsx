@@ -1,4 +1,4 @@
-import { render, waitFor, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import * as api from './api';
@@ -10,10 +10,14 @@ vi.mock('./api', () => ({
     .mockResolvedValue({ hasSession: true, visits: 1, userId: 'test-user-id' }),
   fetchHealth: vi.fn().mockResolvedValue({ status: 'ok' }),
   fetchProjects: vi.fn().mockResolvedValue([]),
-  fetchProject: vi.fn().mockResolvedValue({ id: 'project-1', name: 'Test Project' }),
+  fetchProject: vi
+    .fn()
+    .mockResolvedValue({ id: 'project-1', name: 'Test Project' }),
   fetchConditions: vi.fn().mockResolvedValue([]),
   fetchFeatures: vi.fn().mockResolvedValue([]),
-  fetchFeature: vi.fn().mockResolvedValue({ id: 'feature-1', name: 'Test Feature' }),
+  fetchFeature: vi
+    .fn()
+    .mockResolvedValue({ id: 'feature-1', name: 'Test Feature' }),
   fetchRequirements: vi.fn().mockResolvedValue([]),
   fetchKeys: vi.fn().mockResolvedValue([]),
   fetchProjectRequirements: vi.fn().mockResolvedValue([]),
@@ -46,10 +50,17 @@ describe('App', () => {
 
   it('renders breadcrumbs with mapped names', async () => {
     // Navigate to a feature URL directly
-    window.history.pushState({}, 'Test Feature', '/projects/project-1/features/feature-1');
-    
+    window.history.pushState(
+      {},
+      'Test Feature',
+      '/projects/project-1/features/feature-1',
+    );
+
     // Update mocks for feature
-    vi.mocked(api.fetchFeature).mockResolvedValue({ id: 'feature-1', name: 'Test Feature' });
+    vi.mocked(api.fetchFeature).mockResolvedValue({
+      id: 'feature-1',
+      name: 'Test Feature',
+    });
 
     render(<App />);
 
@@ -59,13 +70,19 @@ describe('App', () => {
       expect(screen.getByLabelText('breadcrumb-projects')).toBeTruthy();
       expect(screen.getByText('Test Project')).toBeTruthy();
       expect(screen.getByLabelText('breadcrumb-features')).toBeTruthy();
-      expect(screen.getByLabelText('breadcrumb-active').textContent).toBe('Test Feature');
+      expect(screen.getByLabelText('breadcrumb-active').textContent).toBe(
+        'Test Feature',
+      );
     });
 
     // Verify links
-    expect(screen.getByLabelText('breadcrumb-home').getAttribute('href')).toBe('/');
-    expect(screen.getByLabelText('breadcrumb-projects').getAttribute('href')).toBe('/projects');
-    
+    expect(screen.getByLabelText('breadcrumb-home').getAttribute('href')).toBe(
+      '/',
+    );
+    expect(
+      screen.getByLabelText('breadcrumb-projects').getAttribute('href'),
+    ).toBe('/projects');
+
     // Project link
     const projectLink = screen.getByText('Test Project').closest('a');
     expect(projectLink?.getAttribute('href')).toBe('/projects/project-1');

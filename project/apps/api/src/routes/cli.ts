@@ -36,8 +36,8 @@ export const cliRoutes = async (api: FastifyInstance) => {
 
     return {
       validated: true,
-      project: { id: result.key!.projectId },
-      keyId: result.key!.id,
+      project: { id: result.key?.projectId },
+      keyId: result.key?.id,
     };
   });
 
@@ -230,7 +230,7 @@ export const cliRoutes = async (api: FastifyInstance) => {
 
   api.patch<{
     Params: { projectId: string; keyId: string; id: string };
-    Body: { name?: string; message?: string; status?: any };
+    Body: { name?: string; message?: string; status?: unknown };
     Headers: { 'x-cli-secret': string };
   }>('/:projectId/:keyId/feature/:id', async (req, reply) => {
     const { projectId, keyId, id } = req.params;
@@ -261,7 +261,7 @@ export const cliRoutes = async (api: FastifyInstance) => {
     Params: { projectId: string; keyId: string; id: string };
     Headers: { 'x-cli-secret': string };
   }>('/:projectId/:keyId/feature/:id', async (req, reply) => {
-    const { projectId, keyId, id } = req.params;
+    const { projectId, keyId, id: _id } = req.params;
     const secret = req.headers['x-cli-secret'];
 
     const result = await validateKey(projectId, keyId, secret);
@@ -332,12 +332,12 @@ export const cliRoutes = async (api: FastifyInstance) => {
 
   api.patch<{
     Params: { projectId: string; keyId: string; featureId: string; id: string };
-    Body: { name?: string; status?: any };
+    Body: { name?: string; status?: unknown };
     Headers: { 'x-cli-secret': string };
   }>(
     '/:projectId/:keyId/feature/:featureId/requirement/:id',
     async (req, reply) => {
-      const { projectId, keyId, featureId, id } = req.params;
+      const { projectId, keyId, featureId: _featureId, id: _id } = req.params;
       const secret = req.headers['x-cli-secret'];
 
       const result = await validateKey(projectId, keyId, secret);
@@ -362,7 +362,7 @@ export const cliRoutes = async (api: FastifyInstance) => {
   }>(
     '/:projectId/:keyId/feature/:featureId/requirement/:id',
     async (req, reply) => {
-      const { projectId, keyId, featureId, id } = req.params;
+      const { projectId, keyId, featureId: _featureId, id: _id } = req.params;
       const secret = req.headers['x-cli-secret'];
 
       const result = await validateKey(projectId, keyId, secret);

@@ -2,7 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const webPort = process.env.WEB_PORT || process.env.VITE_PORT;
 if (!webPort) {
-  throw new Error('WEB_PORT or VITE_PORT environment variable is required for E2E tests');
+  throw new Error(
+    'WEB_PORT or VITE_PORT environment variable is required for E2E tests',
+  );
 }
 
 export default defineConfig({

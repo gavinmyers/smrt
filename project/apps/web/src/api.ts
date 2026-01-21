@@ -10,7 +10,18 @@ export async function fetchSession() {
   return response.json();
 }
 
-export async function login(data: any) {
+export interface LoginData {
+  email: string;
+  password?: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password?: string;
+  name?: string;
+}
+
+export async function login(data: LoginData) {
   const response = await fetch(`${API_BASE_URL}/open/user/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,7 +36,7 @@ export async function login(data: any) {
   return response.json();
 }
 
-export async function register(data: any) {
+export async function register(data: RegisterData) {
   const response = await fetch(`${API_BASE_URL}/open/user/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

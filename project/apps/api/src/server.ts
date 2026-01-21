@@ -1,5 +1,5 @@
-import { prisma } from '@repo/database';
 import { pathToFileURL } from 'node:url';
+import { prisma } from '@repo/database';
 import { buildApp } from './app.js';
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -14,7 +14,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       const host = process.env.HOST;
 
       if (!port || !host) {
-        throw new Error('PORT and HOST environment variables are required to start the server');
+        throw new Error(
+          'PORT and HOST environment variables are required to start the server',
+        );
       }
 
       await app.listen({ port, host });

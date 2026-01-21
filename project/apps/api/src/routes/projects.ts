@@ -1,19 +1,25 @@
-import crypto from 'node:crypto';
 import { prisma } from '@repo/database';
 import type { FastifyInstance } from 'fastify';
-import { ensureProjectAccess, getUser } from '../utils/auth.js';
+import type { AuthenticatedRequest } from '../types.js';
 
 export const projectRoutes = async (api: FastifyInstance) => {
-  api.get('/session', async (req, reply) => {
-    const sid = (req as any).sid;
+  api.get('/session', async (req, _reply) => {
+    const sid = (req as unknown as AuthenticatedRequest).sid;
+    if (!sid) {
+      return { sessionId: 'unknown', userId: null };
+    }
     const session = await prisma.sessionCounter.findUnique({
       where: { sessionId: sid },
     });
-    return session || { sessionId: sid };
+
+    return {
+      sessionId: sid,
+      userId: session?.userId || null,
+    };
   });
 
   api.get('/session/project/list', async (req, reply) => {
-    const userId = await getUser((req as any).sid);
+    const userId = await getUser((req as unknown as AuthenticatedRequest).sid);
     if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
     const projects = await prisma.project.findMany({
@@ -26,7 +32,9 @@ export const projectRoutes = async (api: FastifyInstance) => {
   api.post<{ Body: { name: string; description?: string } }>(
     '/session/project/create',
     async (req, reply) => {
-      const userId = await getUser((req as any).sid);
+      const userId = await getUser(
+        (req as unknown as AuthenticatedRequest).sid,
+      );
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
       const { name, description } = req.body;
@@ -46,7 +54,9 @@ export const projectRoutes = async (api: FastifyInstance) => {
   api.get<{ Params: { id: string } }>(
     '/session/project/:id',
     async (req, reply) => {
-      const userId = await getUser((req as any).sid);
+      const userId = await getUser(
+        (req as unknown as AuthenticatedRequest).sid,
+      );
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
       const { id } = req.params;
@@ -64,7 +74,7 @@ export const projectRoutes = async (api: FastifyInstance) => {
     Params: { id: string };
     Body: { name?: string; description?: string };
   }>('/session/project/:id', async (req, reply) => {
-    const userId = await getUser((req as any).sid);
+    const userId = await getUser((req as unknown as AuthenticatedRequest).sid);
     if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
     const { id } = req.params;
@@ -85,7 +95,9 @@ export const projectRoutes = async (api: FastifyInstance) => {
   api.delete<{ Params: { id: string } }>(
     '/session/project/:id',
     async (req, reply) => {
-      const userId = await getUser((req as any).sid);
+      const userId = await getUser(
+        (req as unknown as AuthenticatedRequest).sid,
+      );
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
       const { id } = req.params;
@@ -108,7 +120,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/conditions',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -123,7 +138,12 @@ export const projectRoutes = async (api: FastifyInstance) => {
     Params: { projectId: string };
     Body: { name: string; message?: string };
   }>('/session/project/:projectId/conditions', async (req, reply) => {
-    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+    if (
+      !(await ensureProjectAccess(
+        (req as unknown as AuthenticatedRequest).sid,
+        req.params.projectId,
+      ))
+    ) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
     return prisma.condition.create({
@@ -139,7 +159,12 @@ export const projectRoutes = async (api: FastifyInstance) => {
     Params: { projectId: string; id: string };
     Body: { name: string; message?: string };
   }>('/session/project/:projectId/conditions/:id', async (req, reply) => {
-    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+    if (
+      !(await ensureProjectAccess(
+        (req as unknown as AuthenticatedRequest).sid,
+        req.params.projectId,
+      ))
+    ) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
     return prisma.condition.update({
@@ -155,7 +180,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/conditions/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -169,7 +197,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -184,7 +215,12 @@ export const projectRoutes = async (api: FastifyInstance) => {
     Params: { projectId: string };
     Body: { name: string; message?: string };
   }>('/session/project/:projectId/features', async (req, reply) => {
-    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+    if (
+      !(await ensureProjectAccess(
+        (req as unknown as AuthenticatedRequest).sid,
+        req.params.projectId,
+      ))
+    ) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
     return prisma.feature.create({
@@ -198,9 +234,14 @@ export const projectRoutes = async (api: FastifyInstance) => {
 
   api.patch<{
     Params: { projectId: string; id: string };
-    Body: { name?: string; message?: string; status?: any };
+    Body: { name?: string; message?: string; status?: unknown };
   }>('/session/project/:projectId/features/:id', async (req, reply) => {
-    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+    if (
+      !(await ensureProjectAccess(
+        (req as unknown as AuthenticatedRequest).sid,
+        req.params.projectId,
+      ))
+    ) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
     return prisma.feature.update({
@@ -217,7 +258,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -230,7 +274,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -245,7 +292,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features/:featureId/requirements',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -263,7 +313,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features/:featureId/requirements',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -278,12 +331,15 @@ export const projectRoutes = async (api: FastifyInstance) => {
 
   api.patch<{
     Params: { projectId: string; featureId: string; id: string };
-    Body: { name?: string; status?: any };
+    Body: { name?: string; status?: unknown };
   }>(
     '/session/project/:projectId/features/:featureId/requirements/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -301,7 +357,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/features/:featureId/requirements/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -315,7 +374,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/project-requirements',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -330,7 +392,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/project-requirements',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -350,7 +415,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/project-requirements/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -367,7 +435,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/project-requirements/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -381,7 +452,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/keys',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -396,7 +470,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/keys',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -407,7 +484,9 @@ export const projectRoutes = async (api: FastifyInstance) => {
 
       const cliUrl = process.env.CLI_URL;
       if (!cliUrl) {
-        throw new Error('CLI_URL environment variable is required to generate project keys');
+        throw new Error(
+          'CLI_URL environment variable is required to generate project keys',
+        );
       }
 
       // Create Key record and KeyHash
@@ -437,7 +516,10 @@ export const projectRoutes = async (api: FastifyInstance) => {
     '/session/project/:projectId/keys/:id',
     async (req, reply) => {
       if (
-        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+        !(await ensureProjectAccess(
+          (req as unknown as AuthenticatedRequest).sid,
+          req.params.projectId,
+        ))
       ) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: IDs are guaranteed by context
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -51,7 +52,7 @@ import * as api from './api';
 
 const DRAWER_WIDTH = 240;
 
-import { createContext, useContext, useCallback } from 'react';
+import { createContext, useCallback, useContext } from 'react';
 
 const BreadcrumbContext = createContext<{
   names: Record<string, string>;
@@ -323,8 +324,9 @@ function ProjectsView() {
         : await api.updateProject(id, editName);
       setProjects(projects.map((p) => (p.id === id ? res : p)));
       setEditingId(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'An error occurred';
+      setError(message);
     }
   };
 
@@ -367,7 +369,7 @@ function ProjectDetailsView() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { setBreadcrumbName } = useBreadcrumbs();
-  
+
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam ? parseInt(tabParam, 10) : 0;
   const [tab, setTab] = useState(initialTab);
@@ -375,7 +377,7 @@ function ProjectDetailsView() {
   useEffect(() => {
     if (tabParam) {
       const val = parseInt(tabParam, 10);
-      if (!isNaN(val)) setTab(val);
+      if (!Number.isNaN(val)) setTab(val);
     }
   }, [tabParam]);
 
@@ -431,8 +433,9 @@ function ProjectDetailsView() {
       );
       setProject(res);
       setIsEditingInfo(false);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'An error occurred';
+      setError(message);
     }
   };
 
@@ -476,8 +479,9 @@ function ProjectDetailsView() {
       }
       setEditingId(null);
       setEditStatus('OPEN');
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'An error occurred';
+      setError(message);
     }
   };
 
@@ -768,7 +772,9 @@ function FeatureDetailsView() {
     setBreadcrumbName('features', 'Features');
 
     if (!names[projectId]) {
-      api.fetchProject(projectId).then((p) => setBreadcrumbName(projectId, p.name));
+      api
+        .fetchProject(projectId)
+        .then((p) => setBreadcrumbName(projectId, p.name));
     }
 
     api
@@ -823,8 +829,9 @@ function FeatureDetailsView() {
           );
       setRequirements(requirements.map((r) => (r.id === id ? res : r)));
       setEditingId(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'An error occurred';
+      setError(message);
     }
   };
 
@@ -914,10 +921,10 @@ function FeatureDetailsView() {
 }
 
 function SystemView() {
-  const [health, setHealth] = useState<any>(null);
-  const [apiSentinel, setApiSentinel] = useState<any>(null);
-  const [dbSentinel, setDbSentinel] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
+  const [health, setHealth] = useState(null);
+  const [apiSentinel, setApiSentinel] = useState(null);
+  const [dbSentinel, setDbSentinel] = useState(null);
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
     api.fetchHealth().then(setHealth);
@@ -938,7 +945,7 @@ function SystemView() {
         try {
           const data = JSON.parse(text);
           setDbSentinel(data);
-        } catch (e) {
+        } catch (_e) {
           console.error('[SystemView] DB Sentinel JSON Parse Error:', text);
           setDbSentinel({ error: true, raw: text });
         }
@@ -1065,13 +1072,21 @@ function BreadcrumbsArea() {
 
         // Custom logic for "features" segment:
         // If the path is /projects/:id/features, it should link to /projects/:id?tab=2
-        if (value === 'features' && index > 0 && pathnames[index-1] !== 'projects') {
-          const projectId = pathnames[index-1];
+        if (
+          value === 'features' &&
+          index > 0 &&
+          pathnames[index - 1] !== 'projects'
+        ) {
+          const projectId = pathnames[index - 1];
           to = `/projects/${projectId}?tab=2`;
         }
-        
+
         return last ? (
-          <Typography color="text.primary" key={to} aria-label={`breadcrumb-active`}>
+          <Typography
+            color="text.primary"
+            key={to}
+            aria-label={`breadcrumb-active`}
+          >
             {displayName}
           </Typography>
         ) : (
@@ -1109,8 +1124,9 @@ function AuthView({ onLogin }: { onLogin: () => void }) {
         await api.login({ email, password });
       }
       onLogin();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(message);
     }
   };
 
@@ -1187,7 +1203,19 @@ function AuthView({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-function Layout({ session, onLogout }: { session: any; onLogout: () => void }) {
+interface Session {
+  userId: string;
+  sessionId: string;
+  visits: number;
+}
+
+function Layout({
+  session,
+  onLogout,
+}: {
+  session: Session;
+  onLogout: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1338,10 +1366,10 @@ function Layout({ session, onLogout }: { session: any; onLogout: () => void }) {
 }
 
 function App() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     try {
       const s = await api.fetchSession();
       setSession(s);
@@ -1350,11 +1378,11 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshSession();
-  }, []);
+  }, [refreshSession]);
 
   const handleLogout = async () => {
     await api.logout();

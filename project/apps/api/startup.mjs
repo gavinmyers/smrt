@@ -28,7 +28,9 @@ async function main() {
   }
 
   if (!dbHost || !dbPort) {
-    console.error('ERROR: Database host and port must be specified via DATABASE_URL or DB_HOST/DB_PORT.');
+    console.error(
+      'ERROR: Database host and port must be specified via DATABASE_URL or DB_HOST/DB_PORT.',
+    );
     process.exit(1);
   }
 

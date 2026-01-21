@@ -1,12 +1,13 @@
 import { prisma } from '@repo/database';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 
 describe('CLI CRUD Integration Tests', () => {
-  let app;
-  let projectId;
-  let keyId;
-  let secret;
+  let app: FastifyInstance;
+  let projectId: string;
+  let keyId: string;
+  let secret: string;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -26,7 +27,10 @@ describe('CLI CRUD Integration Tests', () => {
       url: '/api/open/user/login',
       payload: { email, password: 'password123' },
     });
-    const sidCookie = loginRes.cookies.find((c: any) => c.name === 'sid');
+    const sidCookie = loginRes.cookies.find(
+      (c: { name: string }) => c.name === 'sid',
+    );
+    if (!sidCookie) throw new Error('SID cookie not found');
     const headers = { cookie: `sid=${sidCookie.value}` };
 
     const projectRes = await app.inject({
@@ -125,7 +129,7 @@ describe('CLI CRUD Integration Tests', () => {
       headers: { 'x-cli-secret': secret },
     });
     const list = listRes.json();
-    expect(list.find((c: any) => c.id === id)).toBeUndefined();
+    expect(list.find((c: { id: string }) => c.id === id)).toBeUndefined();
   });
 
   // --- Features ---
@@ -200,6 +204,6 @@ describe('CLI CRUD Integration Tests', () => {
       headers: { 'x-cli-secret': secret },
     });
     const list = listRes.json();
-    expect(list.find((f: any) => f.id === id)).toBeUndefined();
+    expect(list.find((f: { id: string }) => f.id === id)).toBeUndefined();
   });
 });

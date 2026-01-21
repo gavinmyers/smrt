@@ -10,7 +10,9 @@ export const buildApp = async () => {
   const { LOG_LEVEL, CORS_ORIGIN, COOKIE_SECRET } = process.env;
 
   if (!LOG_LEVEL || !CORS_ORIGIN || !COOKIE_SECRET) {
-    throw new Error('Missing required environment variables: LOG_LEVEL, CORS_ORIGIN, or COOKIE_SECRET');
+    throw new Error(
+      'Missing required environment variables: LOG_LEVEL, CORS_ORIGIN, or COOKIE_SECRET',
+    );
   }
 
   const app = Fastify({

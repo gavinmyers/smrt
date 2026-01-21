@@ -62,16 +62,16 @@ test.describe('API Gradual Integration', () => {
 
     // 4. List keys - verify secret is NOT returned
     const listRes = await request.get(
-      `${baseURL}/api/session/project/${projectId}/keys`,
+      `${API_URL}/session/project/${project.id}/keys`,
     );
     const keys = await listRes.json();
-    const foundKey = keys.find((k: any) => k.id === keyBlob.keyId);
+    const foundKey = keys.find((k: { id: string }) => k.id === keyBlob.keyId);
 
     expect(foundKey).toBeDefined();
-    expect(foundKey.keyHash).toBeUndefined();
-    expect((foundKey as any).secret).toBeUndefined();
+    expect((foundKey as { keyHash?: string }).keyHash).toBeUndefined();
+    expect((foundKey as { secret?: string }).secret).toBeUndefined();
 
     // 5. Cleanup
-    await request.delete(`${baseURL}/api/session/project/${projectId}`);
+    await request.delete(`${API_URL}/session/project/${project.id}`);
   });
 });
