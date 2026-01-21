@@ -36,7 +36,7 @@ export const cliRoutes = async (api: FastifyInstance) => {
 
     return {
       validated: true,
-      projectId: result.key!.projectId,
+      project: { id: result.key!.projectId },
       keyId: result.key!.id,
     };
   });

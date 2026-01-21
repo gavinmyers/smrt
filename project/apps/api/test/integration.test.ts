@@ -56,8 +56,8 @@ describe('API Integration Tests', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.id).toBe(id);
-    expect(body.email).toBe(email);
+    expect(body.user.id).toBe(id);
+    expect(body.user.email).toBe(email);
 
     // Verify session was updated (requires mocking/checking DB directly or relying on cookie persistence in `inject` which is tricky without a cookie jar.
     // Ideally we check the DB directly here since we have prisma access)
@@ -184,7 +184,7 @@ describe('API Integration Tests', () => {
       payload: { name: 'Dev Key' },
     });
     expect(keyRes.statusCode).toBe(200);
-    expect(keyRes.json().token).toBeDefined(); // Token should be returned on creation
+    expect(keyRes.json().secret).toBeDefined(); // Secret should be returned on creation
   });
 
   it('Project Management Flow with Description', async () => {

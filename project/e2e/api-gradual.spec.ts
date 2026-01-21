@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('API Gradual Integration', () => {
-  const baseURL = `http://localhost:${process.env.PORT || '3001'}`;
+  const baseURL = process.env.API_URL;
+  if (!baseURL) {
+    throw new Error('API_URL environment variable is required');
+  }
 
   test('Level 3: Infrastructure - Health Check', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/open/status/health`);

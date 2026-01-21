@@ -405,6 +405,11 @@ export const projectRoutes = async (api: FastifyInstance) => {
       const keyString = `sk_${crypto.randomBytes(24).toString('hex')}`;
       const hash = crypto.createHash('sha256').update(keyString).digest('hex');
 
+      const cliUrl = process.env.CLI_URL;
+      if (!cliUrl) {
+        throw new Error('CLI_URL environment variable is required to generate project keys');
+      }
+
       // Create Key record and KeyHash
       const key = await prisma.key.create({
         data: {
@@ -419,7 +424,12 @@ export const projectRoutes = async (api: FastifyInstance) => {
       });
 
       // Return the key string ONLY once
-      return { ...key, token: keyString };
+      return {
+        ...key,
+        keyId: key.id,
+        secret: keyString,
+        apiUrl: `${cliUrl.replace(/\/$/, '')}/api/cli/${req.params.projectId}/${key.id}`,
+      };
     },
   );
 

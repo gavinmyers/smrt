@@ -57,11 +57,11 @@ describe('CLI Integration Tests', () => {
     expect(keyRes.statusCode).toBe(200);
     const keyData = keyRes.json();
     const keyId = keyData.id;
-    const token = keyData.token;
+    const secret = keyData.secret;
 
     expect(keyId).toBeDefined();
-    expect(token).toBeDefined();
-    expect(token).toMatch(/^sk_/);
+    expect(secret).toBeDefined();
+    expect(secret).toMatch(/^sk_/);
 
     // 4. Authenticate as CLI (simulate CLI client)
     // The CLI sends Key ID in URL and Secret in header
@@ -69,21 +69,21 @@ describe('CLI Integration Tests', () => {
       method: 'GET',
       url: `/api/cli/${projectId}/${keyId}/check`,
       headers: {
-        'x-cli-secret': token,
+        'x-cli-secret': secret,
       },
     });
 
     expect(authRes.statusCode).toBe(200);
     const authData = authRes.json();
     expect(authData.validated).toBe(true);
-    expect(authData.projectId).toBe(projectId);
+    expect(authData.project.id).toBe(projectId);
 
     // 6. Create Condition via CLI
     const condRes = await app.inject({
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/condition`,
       headers: {
-        'x-cli-secret': token,
+        'x-cli-secret': secret,
       },
       payload: {
         name: 'CLI Condition',
@@ -102,7 +102,7 @@ describe('CLI Integration Tests', () => {
       method: 'POST',
       url: `/api/cli/${projectId}/${keyId}/feature`,
       headers: {
-        'x-cli-secret': token,
+        'x-cli-secret': secret,
       },
       payload: {
         name: 'CLI Feature',

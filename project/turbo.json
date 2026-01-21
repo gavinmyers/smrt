@@ -11,18 +11,38 @@
       "persistent": true,
       "env": [
         "DATABASE_URL",
+        "LOCAL_DATABASE_URL",
         "PORT",
         "HOST",
         "CORS_ORIGIN",
         "API_URL",
+        "CLI_URL",
+        "VITE_API_URL",
         "VITE_PORT",
-        "LOG_LEVEL"
+        "LOG_LEVEL",
+        "COOKIE_SECRET",
+        "IS_DOCKER"
       ]
     },
     "test": {
       "dependsOn": ["build"],
       "outputs": ["coverage/**"],
-      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
+      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
+      "env": [
+        "DATABASE_URL",
+        "LOCAL_DATABASE_URL",
+        "PORT",
+        "HOST",
+        "CORS_ORIGIN",
+        "API_URL",
+        "CLI_URL",
+        "VITE_API_URL",
+        "VITE_PORT",
+        "LOG_LEVEL",
+        "COOKIE_SECRET",
+        "IS_DOCKER",
+        "PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION"
+      ]
     },
     "lint": {},
     "test:e2e": {

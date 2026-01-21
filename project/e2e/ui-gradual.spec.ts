@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('UI Gradual Integration', () => {
-  const baseURL = `http://localhost:${process.env.VITE_PORT || '4173'}`;
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
   });

@@ -1,5 +1,7 @@
+name: smrt-dev
+
 services:
-  db-dev:
+  smrt-db-dev:
     image: postgres:17-alpine
     restart: always
     environment:
@@ -7,39 +9,47 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - "${EXTERNAL_DB_PORT}:${INTERNAL_DB_PORT}"
     volumes:
       - db_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  api-dev:
+  smrt-api-dev:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     image: smrt-api-dev
     ports:
       - "${API_PORT}:${INTERNAL_PORT}"
-    networks:
-      default:
-        aliases:
-          - api
+    env_file: .env.dev
     environment:
-      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db-dev:5432/${DB_NAME}?schema=public"
-      PORT: ${INTERNAL_PORT}
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${INTERNAL_DB_PORT}/${DB_NAME}?schema=public"
+      LOG_LEVEL: ${LOG_LEVEL}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      PORT: ${INTERNAL_PORT}
+      HOST: ${HOST}
+      CLI_URL: ${CLI_URL}
+      AUTO_MIGRATE: "true"
     depends_on:
-      - db-dev
+      - smrt-db-dev
 
-  web-dev:
+  smrt-web-dev:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     image: smrt-web-dev
     ports:
-      - "${WEB_PORT}:80"
+      - "${WEB_PORT}:${INTERNAL_WEB_PORT}"
     environment:
       VITE_API_URL: ${API_URL}
+      API_PROXY_URL: ${API_PROXY_URL}
     depends_on:
-      - api-dev
+      - smrt-api-dev
     volumes:
       - ./logs/nginx-dev:/var/log/nginx
 

@@ -10,8 +10,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       await prisma.$connect();
       app.log.info('Database connection successful');
 
-      const port = Number(process.env.PORT) || 3001;
-      const host = process.env.HOST || '0.0.0.0';
+      const port = Number(process.env.PORT);
+      const host = process.env.HOST;
+
+      if (!port || !host) {
+        throw new Error('PORT and HOST environment variables are required to start the server');
+      }
+
       await app.listen({ port, host });
     } catch (err) {
       app.log.error('Failed to start server:');

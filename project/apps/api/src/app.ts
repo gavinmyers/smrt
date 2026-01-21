@@ -7,23 +7,27 @@ import { cliRoutes } from './routes/cli.js';
 import { projectRoutes } from './routes/projects.js';
 
 export const buildApp = async () => {
+  const { LOG_LEVEL, CORS_ORIGIN, COOKIE_SECRET } = process.env;
+
+  if (!LOG_LEVEL || !CORS_ORIGIN || !COOKIE_SECRET) {
+    throw new Error('Missing required environment variables: LOG_LEVEL, CORS_ORIGIN, or COOKIE_SECRET');
+  }
+
   const app = Fastify({
     logger: {
-      level: process.env.LOG_LEVEL || 'info',
+      level: LOG_LEVEL,
     },
     trustProxy: true,
   });
 
   // Register plugins
   await app.register(cors, {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: CORS_ORIGIN,
     credentials: true,
   });
 
   await app.register(cookie, {
-    secret:
-      process.env.COOKIE_SECRET ||
-      'dev-secret-at-least-32-chars-long-and-secure',
+    secret: COOKIE_SECRET,
   });
 
   // Global Session Initialization

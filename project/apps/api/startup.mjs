@@ -21,11 +21,15 @@ async function main() {
     try {
       const url = new URL(dbUrl.replace('postgresql://', 'http://'));
       dbHost = dbHost || url.hostname;
-      dbPort = dbPort || Number(url.port) || 5432;
+      dbPort = dbPort || Number(url.port);
     } catch (_e) {
-      dbHost = dbHost || 'db';
-      dbPort = dbPort || 5432;
+      // Handled by check below
     }
+  }
+
+  if (!dbHost || !dbPort) {
+    console.error('ERROR: Database host and port must be specified via DATABASE_URL or DB_HOST/DB_PORT.');
+    process.exit(1);
   }
 
   console.log(`--- STARTUP ---`);

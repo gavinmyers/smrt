@@ -8,6 +8,19 @@ export const authRoutes = async (api: FastifyInstance) => {
     return { status: 'ok' };
   });
 
+  api.get('/health/api', async (_req, _reply) => {
+    return { sentinel: 'SMRT-V1-READY' };
+  });
+
+  api.get('/health/db', async (_req, _reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { sentinel: 'SMRT-V1-READY' };
+    } catch (e) {
+      return _reply.status(500).send({ sentinel: 'OFFLINE', error: (e as any).message });
+    }
+  });
+
   api.post<{ Body: { email: string; password: string; name?: string } }>(
     '/user/register',
     async (req, reply) => {
@@ -91,7 +104,7 @@ export const authRoutes = async (api: FastifyInstance) => {
       });
 
       const { hash, ...userWithoutHash } = user;
-      return reply.send(userWithoutHash);
+      return reply.send({ success: true, user: userWithoutHash });
     },
   );
 

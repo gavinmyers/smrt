@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('CLI Gradual Integration', () => {
-  const baseURL = `http://localhost:${process.env.PORT || '3001'}`;
+  const baseURL = process.env.API_URL;
+  if (!baseURL) {
+    throw new Error('API_URL environment variable is required');
+  }
 
   test('Level 12: CLI Check Endpoint Security', async ({ request }) => {
     // 1. Setup User, Session, Project and Key

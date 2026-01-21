@@ -8,7 +8,15 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
   // Load env file from project root
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), '');
-  const port = parseInt(env.VITE_PORT || '5173', 10);
+
+  const portStr = env.VITE_PORT;
+  const apiUrl = env.VITE_API_URL || env.API_URL;
+
+  if (!portStr || !apiUrl) {
+    throw new Error('VITE_PORT and (VITE_API_URL or API_URL) environment variables are required');
+  }
+
+  const port = parseInt(portStr, 10);
 
   return {
     plugins: [react()],
@@ -17,7 +25,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || env.API_URL || 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
           // Removed rewrite so /api/session/... stays /api/session/...
         },
