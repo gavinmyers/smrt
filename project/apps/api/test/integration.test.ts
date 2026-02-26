@@ -215,4 +215,81 @@ describe('API Integration Tests', () => {
     expect(updateRes.statusCode).toBe(200);
     expect(updateRes.json().description).toBe('Updated goals.');
   });
+
+  it('Discussion CRUD and message CRUD via session API', async () => {
+    const cookie = (global as any).authCookie;
+    const headers = { cookie: `sid=${cookie}` };
+
+    const projectRes = await app.inject({
+      method: 'POST',
+      url: '/api/session/project/create',
+      headers,
+      payload: { name: 'Discussion Session Project' },
+    });
+    const project = projectRes.json();
+
+    const createDiscussionRes = await app.inject({
+      method: 'POST',
+      url: `/api/session/project/${project.id}/discussions`,
+      headers,
+      payload: { name: 'Agent Coordination' },
+    });
+    expect(createDiscussionRes.statusCode).toBe(200);
+    const discussion = createDiscussionRes.json();
+    expect(discussion.name).toBe('Agent Coordination');
+
+    const listDiscussionsRes = await app.inject({
+      method: 'GET',
+      url: `/api/session/project/${project.id}/discussions`,
+      headers,
+    });
+    expect(listDiscussionsRes.statusCode).toBe(200);
+    expect(
+      listDiscussionsRes.json().some((d: any) => d.id === discussion.id),
+    ).toBe(true);
+
+    const createMessageRes = await app.inject({
+      method: 'POST',
+      url: `/api/session/project/${project.id}/discussions/${discussion.id}/messages`,
+      headers,
+      payload: { body: 'First session-authored message' },
+    });
+    expect(createMessageRes.statusCode).toBe(200);
+    const message = createMessageRes.json();
+    expect(message.body).toBe('First session-authored message');
+    expect(message.authorName).toBeDefined();
+
+    const updateMessageRes = await app.inject({
+      method: 'PATCH',
+      url: `/api/session/project/${project.id}/discussions/${discussion.id}/messages/${message.id}`,
+      headers,
+      payload: { body: 'Edited session-authored message' },
+    });
+    expect(updateMessageRes.statusCode).toBe(200);
+    expect(updateMessageRes.json().body).toBe('Edited session-authored message');
+
+    const listMessagesRes = await app.inject({
+      method: 'GET',
+      url: `/api/session/project/${project.id}/discussions/${discussion.id}/messages`,
+      headers,
+    });
+    expect(listMessagesRes.statusCode).toBe(200);
+    expect(
+      listMessagesRes.json().find((m: any) => m.id === message.id)?.body,
+    ).toBe('Edited session-authored message');
+
+    const deleteMessageRes = await app.inject({
+      method: 'DELETE',
+      url: `/api/session/project/${project.id}/discussions/${discussion.id}/messages/${message.id}`,
+      headers,
+    });
+    expect(deleteMessageRes.statusCode).toBe(200);
+
+    const deleteDiscussionRes = await app.inject({
+      method: 'DELETE',
+      url: `/api/session/project/${project.id}/discussions/${discussion.id}`,
+      headers,
+    });
+    expect(deleteDiscussionRes.statusCode).toBe(200);
+  });
 });

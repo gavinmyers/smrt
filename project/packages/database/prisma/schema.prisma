@@ -29,6 +29,7 @@ model Project {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   conditions Condition[]
+  discussions Discussion[]
   features   Feature[]
   keys       Key[]
   users      User[]      @relation("ProjectUsers")
@@ -119,4 +120,24 @@ model ProjectRequirement {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Discussion {
+  id        String              @id @default(uuid())
+  name      String
+  projectId String
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages  DiscussionMessage[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+}
+
+model DiscussionMessage {
+  id           String     @id @default(uuid())
+  body         String
+  authorName   String
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }

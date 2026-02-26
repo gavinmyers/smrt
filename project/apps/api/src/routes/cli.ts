@@ -375,6 +375,234 @@ export const cliRoutes = async (api: FastifyInstance) => {
     },
   );
 
+  // --- Discussions ---
+
+  api.get<{
+    Params: { projectId: string; keyId: string };
+    Headers: { 'x-cli-secret': string };
+  }>('/:projectId/:keyId/discussions', async (req, reply) => {
+    const { projectId, keyId } = req.params;
+    const secret = req.headers['x-cli-secret'];
+
+    const result = await validateKey(projectId, keyId, secret);
+    if (result.error)
+      return reply.status(result.status).send({ error: result.error });
+
+    return prisma.discussion.findMany({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+  });
+
+  api.post<{
+    Params: { projectId: string; keyId: string };
+    Body: { name: string };
+    Headers: { 'x-cli-secret': string };
+  }>('/:projectId/:keyId/discussion', async (req, reply) => {
+    const { projectId, keyId } = req.params;
+    const secret = req.headers['x-cli-secret'];
+
+    const result = await validateKey(projectId, keyId, secret);
+    if (result.error)
+      return reply.status(result.status).send({ error: result.error });
+
+    if (!req.body.name) return reply.status(400).send({ error: 'Name is required' });
+
+    return prisma.discussion.create({
+      data: {
+        name: req.body.name,
+        projectId,
+      },
+    });
+  });
+
+  api.get<{
+    Params: { projectId: string; keyId: string; id: string };
+    Headers: { 'x-cli-secret': string };
+  }>('/:projectId/:keyId/discussion/:id', async (req, reply) => {
+    const { projectId, keyId, id } = req.params;
+    const secret = req.headers['x-cli-secret'];
+
+    const result = await validateKey(projectId, keyId, secret);
+    if (result.error)
+      return reply.status(result.status).send({ error: result.error });
+
+    const discussion = await prisma.discussion.findFirst({
+      where: { id, projectId },
+    });
+    if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+
+    return discussion;
+  });
+
+  api.patch<{
+    Params: { projectId: string; keyId: string; id: string };
+    Body: { name?: string };
+    Headers: { 'x-cli-secret': string };
+  }>('/:projectId/:keyId/discussion/:id', async (req, reply) => {
+    const { projectId, keyId, id } = req.params;
+    const secret = req.headers['x-cli-secret'];
+
+    const result = await validateKey(projectId, keyId, secret);
+    if (result.error)
+      return reply.status(result.status).send({ error: result.error });
+
+    const exists = await prisma.discussion.findFirst({
+      where: { id, projectId },
+    });
+    if (!exists) return reply.status(404).send({ error: 'Discussion not found' });
+
+    return prisma.discussion.update({
+      where: { id },
+      data: { name: req.body.name },
+    });
+  });
+
+  api.delete<{
+    Params: { projectId: string; keyId: string; id: string };
+    Headers: { 'x-cli-secret': string };
+  }>('/:projectId/:keyId/discussion/:id', async (req, reply) => {
+    const { projectId, keyId, id } = req.params;
+    const secret = req.headers['x-cli-secret'];
+
+    const result = await validateKey(projectId, keyId, secret);
+    if (result.error)
+      return reply.status(result.status).send({ error: result.error });
+
+    const exists = await prisma.discussion.findFirst({
+      where: { id, projectId },
+    });
+    if (!exists) return reply.status(404).send({ error: 'Discussion not found' });
+
+    await prisma.discussion.delete({ where: { id } });
+    return { status: 'ok' };
+  });
+
+  // --- Discussion Messages ---
+
+  api.get<{
+    Params: { projectId: string; keyId: string; discussionId: string };
+    Headers: { 'x-cli-secret': string };
+  }>(
+    '/:projectId/:keyId/discussion/:discussionId/messages',
+    async (req, reply) => {
+      const { projectId, keyId, discussionId } = req.params;
+      const secret = req.headers['x-cli-secret'];
+
+      const result = await validateKey(projectId, keyId, secret);
+      if (result.error)
+        return reply.status(result.status).send({ error: result.error });
+
+      const discussion = await prisma.discussion.findFirst({
+        where: { id: discussionId, projectId },
+      });
+      if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+
+      return prisma.discussionMessage.findMany({
+        where: { discussionId },
+        orderBy: { createdAt: 'asc' },
+      });
+    },
+  );
+
+  api.post<{
+    Params: { projectId: string; keyId: string; discussionId: string };
+    Body: { body: string };
+    Headers: { 'x-cli-secret': string };
+  }>(
+    '/:projectId/:keyId/discussion/:discussionId/message',
+    async (req, reply) => {
+      const { projectId, keyId, discussionId } = req.params;
+      const secret = req.headers['x-cli-secret'];
+
+      const result = await validateKey(projectId, keyId, secret);
+      if (result.error)
+        return reply.status(result.status).send({ error: result.error });
+
+      if (!req.body.body) return reply.status(400).send({ error: 'Body is required' });
+
+      const discussion = await prisma.discussion.findFirst({
+        where: { id: discussionId, projectId },
+      });
+      if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+
+      return prisma.discussionMessage.create({
+        data: {
+          body: req.body.body,
+          authorName: result.key!.name,
+          discussionId,
+        },
+      });
+    },
+  );
+
+  api.patch<{
+    Params: {
+      projectId: string;
+      keyId: string;
+      discussionId: string;
+      id: string;
+    };
+    Body: { body?: string };
+    Headers: { 'x-cli-secret': string };
+  }>(
+    '/:projectId/:keyId/discussion/:discussionId/message/:id',
+    async (req, reply) => {
+      const { projectId, keyId, discussionId, id } = req.params;
+      const secret = req.headers['x-cli-secret'];
+
+      const result = await validateKey(projectId, keyId, secret);
+      if (result.error)
+        return reply.status(result.status).send({ error: result.error });
+
+      const message = await prisma.discussionMessage.findFirst({
+        where: {
+          id,
+          discussionId,
+          discussion: { projectId },
+        },
+      });
+      if (!message) return reply.status(404).send({ error: 'Message not found' });
+
+      return prisma.discussionMessage.update({
+        where: { id },
+        data: { body: req.body.body },
+      });
+    },
+  );
+
+  api.delete<{
+    Params: {
+      projectId: string;
+      keyId: string;
+      discussionId: string;
+      id: string;
+    };
+    Headers: { 'x-cli-secret': string };
+  }>(
+    '/:projectId/:keyId/discussion/:discussionId/message/:id',
+    async (req, reply) => {
+      const { projectId, keyId, discussionId, id } = req.params;
+      const secret = req.headers['x-cli-secret'];
+
+      const result = await validateKey(projectId, keyId, secret);
+      if (result.error)
+        return reply.status(result.status).send({ error: result.error });
+
+      const message = await prisma.discussionMessage.findFirst({
+        where: {
+          id,
+          discussionId,
+          discussion: { projectId },
+        },
+      });
+      if (!message) return reply.status(404).send({ error: 'Message not found' });
+
+      await prisma.discussionMessage.delete({ where: { id } });
+      return { status: 'ok' };
+    },
+  );
+
   // --- Project Requirements ---
 
   api.get<{

@@ -202,4 +202,69 @@ describe('CLI CRUD Integration Tests', () => {
     const list = listRes.json();
     expect(list.find((f: any) => f.id === id)).toBeUndefined();
   });
+
+  it('should CRUD discussions and messages via CLI and attribute message author to key name', async () => {
+    const createDiscussionRes = await app.inject({
+      method: 'POST',
+      url: `/api/cli/${projectId}/${keyId}/discussion`,
+      headers: { 'x-cli-secret': secret },
+      payload: { name: 'CLI Discussion' },
+    });
+    expect(createDiscussionRes.statusCode).toBe(200);
+    const discussion = createDiscussionRes.json();
+
+    const listDiscussionsRes = await app.inject({
+      method: 'GET',
+      url: `/api/cli/${projectId}/${keyId}/discussions`,
+      headers: { 'x-cli-secret': secret },
+    });
+    expect(listDiscussionsRes.statusCode).toBe(200);
+    expect(
+      listDiscussionsRes.json().some((d: any) => d.id === discussion.id),
+    ).toBe(true);
+
+    const createMessageRes = await app.inject({
+      method: 'POST',
+      url: `/api/cli/${projectId}/${keyId}/discussion/${discussion.id}/message`,
+      headers: { 'x-cli-secret': secret },
+      payload: { body: 'hello from cli' },
+    });
+    expect(createMessageRes.statusCode).toBe(200);
+    const message = createMessageRes.json();
+    expect(message.authorName).toBe('CLI CRUD Key');
+    expect(message.body).toBe('hello from cli');
+
+    const updateMessageRes = await app.inject({
+      method: 'PATCH',
+      url: `/api/cli/${projectId}/${keyId}/discussion/${discussion.id}/message/${message.id}`,
+      headers: { 'x-cli-secret': secret },
+      payload: { body: 'updated from cli' },
+    });
+    expect(updateMessageRes.statusCode).toBe(200);
+    expect(updateMessageRes.json().body).toBe('updated from cli');
+
+    const listMessagesRes = await app.inject({
+      method: 'GET',
+      url: `/api/cli/${projectId}/${keyId}/discussion/${discussion.id}/messages`,
+      headers: { 'x-cli-secret': secret },
+    });
+    expect(listMessagesRes.statusCode).toBe(200);
+    expect(
+      listMessagesRes.json().find((m: any) => m.id === message.id)?.authorName,
+    ).toBe('CLI CRUD Key');
+
+    const deleteMessageRes = await app.inject({
+      method: 'DELETE',
+      url: `/api/cli/${projectId}/${keyId}/discussion/${discussion.id}/message/${message.id}`,
+      headers: { 'x-cli-secret': secret },
+    });
+    expect(deleteMessageRes.statusCode).toBe(200);
+
+    const deleteDiscussionRes = await app.inject({
+      method: 'DELETE',
+      url: `/api/cli/${projectId}/${keyId}/discussion/${discussion.id}`,
+      headers: { 'x-cli-secret': secret },
+    });
+    expect(deleteDiscussionRes.statusCode).toBe(200);
+  });
 });

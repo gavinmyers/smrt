@@ -4,6 +4,18 @@ import type { FastifyInstance } from 'fastify';
 import { ensureProjectAccess, getUser } from '../utils/auth.js';
 
 export const projectRoutes = async (api: FastifyInstance) => {
+  const getSessionAuthorName = async (sid: string) => {
+    const userId = await getUser(sid);
+    if (!userId) return null;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    return user?.name || user?.email || 'Session User';
+  };
+
   api.get('/session', async (req, reply) => {
     const sid = (req as any).sid;
     const session = await prisma.sessionCounter.findUnique({
@@ -306,6 +318,203 @@ export const projectRoutes = async (api: FastifyInstance) => {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
       await prisma.requirement.delete({ where: { id: req.params.id } });
+      return { status: 'ok' };
+    },
+  );
+
+  // Discussions
+  api.get<{ Params: { projectId: string } }>(
+    '/session/project/:projectId/discussions',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      return prisma.discussion.findMany({
+        where: { projectId: req.params.projectId },
+        orderBy: { createdAt: 'desc' },
+      });
+    },
+  );
+
+  api.post<{
+    Params: { projectId: string };
+    Body: { name: string };
+  }>('/session/project/:projectId/discussions', async (req, reply) => {
+    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+    if (!req.body.name) return reply.status(400).send({ error: 'Name is required' });
+
+    return prisma.discussion.create({
+      data: {
+        name: req.body.name,
+        projectId: req.params.projectId,
+      },
+    });
+  });
+
+  api.get<{ Params: { projectId: string; id: string } }>(
+    '/session/project/:projectId/discussions/:id',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const discussion = await prisma.discussion.findFirst({
+        where: { id: req.params.id, projectId: req.params.projectId },
+      });
+      if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+      return discussion;
+    },
+  );
+
+  api.patch<{
+    Params: { projectId: string; id: string };
+    Body: { name?: string };
+  }>('/session/project/:projectId/discussions/:id', async (req, reply) => {
+    if (!(await ensureProjectAccess((req as any).sid, req.params.projectId))) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+    const exists = await prisma.discussion.findFirst({
+      where: { id: req.params.id, projectId: req.params.projectId },
+    });
+    if (!exists) return reply.status(404).send({ error: 'Discussion not found' });
+
+    return prisma.discussion.update({
+      where: { id: req.params.id },
+      data: { name: req.body.name },
+    });
+  });
+
+  api.delete<{ Params: { projectId: string; id: string } }>(
+    '/session/project/:projectId/discussions/:id',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const exists = await prisma.discussion.findFirst({
+        where: { id: req.params.id, projectId: req.params.projectId },
+      });
+      if (!exists) return reply.status(404).send({ error: 'Discussion not found' });
+
+      await prisma.discussion.delete({ where: { id: req.params.id } });
+      return { status: 'ok' };
+    },
+  );
+
+  // Discussion Messages
+  api.get<{ Params: { projectId: string; discussionId: string } }>(
+    '/session/project/:projectId/discussions/:discussionId/messages',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const discussion = await prisma.discussion.findFirst({
+        where: {
+          id: req.params.discussionId,
+          projectId: req.params.projectId,
+        },
+      });
+      if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+
+      return prisma.discussionMessage.findMany({
+        where: { discussionId: req.params.discussionId },
+        orderBy: { createdAt: 'asc' },
+      });
+    },
+  );
+
+  api.post<{
+    Params: { projectId: string; discussionId: string };
+    Body: { body: string };
+  }>(
+    '/session/project/:projectId/discussions/:discussionId/messages',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      if (!req.body.body) return reply.status(400).send({ error: 'Body is required' });
+
+      const discussion = await prisma.discussion.findFirst({
+        where: {
+          id: req.params.discussionId,
+          projectId: req.params.projectId,
+        },
+      });
+      if (!discussion) return reply.status(404).send({ error: 'Discussion not found' });
+
+      const authorName = await getSessionAuthorName((req as any).sid);
+      if (!authorName) return reply.status(401).send({ error: 'Unauthorized' });
+
+      return prisma.discussionMessage.create({
+        data: {
+          body: req.body.body,
+          authorName,
+          discussionId: req.params.discussionId,
+        },
+      });
+    },
+  );
+
+  api.patch<{
+    Params: { projectId: string; discussionId: string; id: string };
+    Body: { body?: string };
+  }>(
+    '/session/project/:projectId/discussions/:discussionId/messages/:id',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const message = await prisma.discussionMessage.findFirst({
+        where: {
+          id: req.params.id,
+          discussionId: req.params.discussionId,
+          discussion: { projectId: req.params.projectId },
+        },
+      });
+      if (!message) return reply.status(404).send({ error: 'Message not found' });
+
+      return prisma.discussionMessage.update({
+        where: { id: req.params.id },
+        data: { body: req.body.body },
+      });
+    },
+  );
+
+  api.delete<{
+    Params: { projectId: string; discussionId: string; id: string };
+  }>(
+    '/session/project/:projectId/discussions/:discussionId/messages/:id',
+    async (req, reply) => {
+      if (
+        !(await ensureProjectAccess((req as any).sid, req.params.projectId))
+      ) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const message = await prisma.discussionMessage.findFirst({
+        where: {
+          id: req.params.id,
+          discussionId: req.params.discussionId,
+          discussion: { projectId: req.params.projectId },
+        },
+      });
+      if (!message) return reply.status(404).send({ error: 'Message not found' });
+
+      await prisma.discussionMessage.delete({ where: { id: req.params.id } });
       return { status: 'ok' };
     },
   );
