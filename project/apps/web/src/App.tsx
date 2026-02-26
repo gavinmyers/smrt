@@ -87,6 +87,7 @@ interface Item {
   id: string;
   name: string;
   status?: string;
+  authorName?: string;
   createdAt: string;
 }
 
@@ -267,7 +268,7 @@ function InlineEditList({
                     )}
                   </Stack>
                 }
-                secondary={`Created: ${new Date(item.createdAt).toLocaleString()}`}
+                secondary={`${item.authorName ? `By ${item.authorName} • ` : ''}Created: ${new Date(item.createdAt).toLocaleString()}`}
               />
             )}
           </ListItem>
@@ -383,6 +384,7 @@ function ProjectDetailsView() {
   const [conditions, setConditions] = useState<Item[]>([]);
   const [features, setFeatures] = useState<Item[]>([]);
   const [keys, setKeys] = useState<Item[]>([]);
+  const [discussions, setDiscussions] = useState<Item[]>([]);
   const [projectRequirements, setProjectRequirements] = useState<Item[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -416,6 +418,10 @@ function ProjectDetailsView() {
       .then(setKeys)
       .catch((e) => setError(e.message));
     api
+      .fetchDiscussions(id)
+      .then(setDiscussions)
+      .catch((e) => setError(e.message));
+    api
       .fetchProjectRequirements(id)
       .then(setProjectRequirements)
       .catch((e) => setError(e.message));
@@ -446,7 +452,8 @@ function ProjectDetailsView() {
           setProjectRequirements(
             projectRequirements.filter((i) => i.id !== itemId),
           );
-        else setKeys(keys.filter((i) => i.id !== itemId));
+        else if (tab === 4) setKeys(keys.filter((i) => i.id !== itemId));
+        else setDiscussions(discussions.filter((i) => i.id !== itemId));
       }
       setEditingId(null);
       return;
@@ -469,10 +476,15 @@ function ProjectDetailsView() {
         setProjectRequirements(
           projectRequirements.map((i) => (i.id === itemId ? res : i)),
         );
-      } else {
+      } else if (tab === 4) {
         const res = await api.createKey(id, editName);
         setNewKeyBlob(JSON.stringify(res, null, 2));
         api.fetchKeys(id).then(setKeys);
+      } else {
+        const res = itemId.startsWith('temp-')
+          ? await api.createDiscussion(id, editName)
+          : await api.updateDiscussion(id, itemId, editName);
+        setDiscussions(discussions.map((i) => (i.id === itemId ? res : i)));
       }
       setEditingId(null);
       setEditStatus('OPEN');
@@ -498,10 +510,15 @@ function ProjectDetailsView() {
         { id: tempId, name: '', createdAt: new Date().toISOString() },
         ...projectRequirements,
       ]);
-    } else {
+    } else if (tab === 4) {
       setKeys([
         { id: tempId, name: '', createdAt: new Date().toISOString() },
         ...keys,
+      ]);
+    } else {
+      setDiscussions([
+        { id: tempId, name: '', createdAt: new Date().toISOString() },
+        ...discussions,
       ]);
     }
     setEditingId(tempId);
@@ -527,6 +544,7 @@ function ProjectDetailsView() {
           <Tab label="Features" />
           <Tab label="Project Requirements" />
           <Tab label="Keys" />
+          <Tab label="Discussions" />
         </Tabs>
       </Box>
 
@@ -691,6 +709,28 @@ function ProjectDetailsView() {
             editingId={editingId}
             editName={editName}
             setEditName={setEditName}
+          />
+        )}
+        {tab === 5 && (
+          <InlineEditList
+            title="Discussions"
+            items={discussions}
+            onAdd={handleAdd}
+            onSave={handleSave}
+            onEdit={(i) => {
+              setEditingId(i.id);
+              setEditName(i.name);
+            }}
+            onDelete={async (itemId) => {
+              await api.deleteDiscussion(id!, itemId);
+              setDiscussions(discussions.filter((i) => i.id !== itemId));
+            }}
+            editingId={editingId}
+            editName={editName}
+            setEditName={setEditName}
+            onItemClick={(discussionId) =>
+              navigate(`/projects/${id}/discussions/${discussionId}`)
+            }
           />
         )}
       </Box>
@@ -913,6 +953,152 @@ function FeatureDetailsView() {
   );
 }
 
+function DiscussionDetailsView() {
+  const { projectId, discussionId } = useParams<{
+    projectId: string;
+    discussionId: string;
+  }>();
+  const { setBreadcrumbName, names } = useBreadcrumbs();
+  const [discussion, setDiscussion] = useState<Item | null>(null);
+  const [messages, setMessages] = useState<Item[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId || !discussionId) return;
+    setBreadcrumbName('projects', 'Projects');
+    setBreadcrumbName('discussions', 'Discussions');
+
+    if (!names[projectId]) {
+      api
+        .fetchProject(projectId)
+        .then((p) => setBreadcrumbName(projectId, p.name))
+        .catch(() => {});
+    }
+
+    api
+      .fetchDiscussion(projectId, discussionId)
+      .then((d) => {
+        setDiscussion(d);
+        setBreadcrumbName(discussionId, d.name);
+      })
+      .catch((e) => setError(e.message));
+
+    api
+      .fetchDiscussionMessages(projectId, discussionId)
+      .then((rows) =>
+        setMessages(
+          rows.map((m: any) => ({
+            id: m.id,
+            name: m.body,
+            authorName: m.authorName,
+            createdAt: m.createdAt,
+          })),
+        ),
+      )
+      .catch((e) => setError(e.message));
+  }, [projectId, discussionId, setBreadcrumbName, names]);
+
+  const handleAdd = () => {
+    const tempId = `temp-${Date.now()}`;
+    setMessages([
+      {
+        id: tempId,
+        name: '',
+        authorName: 'You',
+        createdAt: new Date().toISOString(),
+      },
+      ...messages,
+    ]);
+    setEditingId(tempId);
+    setEditName('');
+  };
+
+  const handleSave = async (id: string) => {
+    if (!editName.trim() || !projectId || !discussionId) {
+      if (id.startsWith('temp-')) setMessages(messages.filter((m) => m.id !== id));
+      setEditingId(null);
+      return;
+    }
+
+    try {
+      if (id.startsWith('temp-')) {
+        const res = await api.createDiscussionMessage(projectId, discussionId, editName);
+        setMessages(
+          messages.map((m) =>
+            m.id === id
+              ? {
+                  id: res.id,
+                  name: res.body,
+                  authorName: res.authorName,
+                  createdAt: res.createdAt,
+                }
+              : m,
+          ),
+        );
+      } else {
+        const res = await api.updateDiscussionMessage(projectId, discussionId, id, editName);
+        setMessages(
+          messages.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  name: res.body,
+                  authorName: res.authorName,
+                  createdAt: res.createdAt,
+                }
+              : m,
+          ),
+        );
+      }
+      setEditingId(null);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  if (!discussion) return <Typography sx={{ p: 3 }}>Loading Discussion...</Typography>;
+
+  return (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+          {discussion.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          ID: {discussion.id}
+        </Typography>
+      </Paper>
+
+      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <InlineEditList
+          title="Messages"
+          items={messages}
+          onAdd={handleAdd}
+          onSave={handleSave}
+          onEdit={(i) => {
+            setEditingId(i.id);
+            setEditName(i.name);
+          }}
+          onDelete={async (id) => {
+            await api.deleteDiscussionMessage(projectId!, discussionId!, id);
+            setMessages(messages.filter((m) => m.id !== id));
+          }}
+          editingId={editingId}
+          editName={editName}
+          setEditName={setEditName}
+        />
+      </Box>
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+    </Box>
+  );
+}
+
 function SystemView() {
   const [health, setHealth] = useState<any>(null);
   const [apiSentinel, setApiSentinel] = useState<any>(null);
@@ -1068,6 +1254,10 @@ function BreadcrumbsArea() {
         if (value === 'features' && index > 0 && pathnames[index-1] !== 'projects') {
           const projectId = pathnames[index-1];
           to = `/projects/${projectId}?tab=2`;
+        }
+        if (value === 'discussions' && index > 0 && pathnames[index - 1] !== 'projects') {
+          const projectId = pathnames[index - 1];
+          to = `/projects/${projectId}?tab=5`;
         }
         
         return last ? (
@@ -1327,6 +1517,10 @@ function Layout({ session, onLogout }: { session: any; onLogout: () => void }) {
             <Route
               path="/projects/:projectId/features/:featureId"
               element={<FeatureDetailsView />}
+            />
+            <Route
+              path="/projects/:projectId/discussions/:discussionId"
+              element={<DiscussionDetailsView />}
             />
             <Route path="/system" element={<SystemView />} />
             <Route path="/" element={<ProjectsView />} />

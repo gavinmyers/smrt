@@ -426,3 +426,125 @@ export async function deleteKey(projectId: string, id: string) {
     throw new Error(`Failed to delete key: ${response.status}`);
   }
 }
+
+// Discussions
+export async function fetchDiscussions(projectId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions`,
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`[API] fetchDiscussions failed: ${response.status} ${text}`);
+    throw new Error(`Failed to fetch discussions: ${response.status}`);
+  }
+  const data = await response.json();
+  if (!Array.isArray(data)) return [];
+  return data;
+}
+
+export async function fetchDiscussion(projectId: string, id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${id}`,
+  );
+  if (!response.ok) throw new Error('Failed to fetch discussion');
+  return response.json();
+}
+
+export async function createDiscussion(projectId: string, name: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!response.ok) throw new Error('Failed to create discussion');
+  return response.json();
+}
+
+export async function updateDiscussion(
+  projectId: string,
+  id: string,
+  name: string,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!response.ok) throw new Error('Failed to update discussion');
+  return response.json();
+}
+
+export async function deleteDiscussion(projectId: string, id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${id}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) throw new Error('Failed to delete discussion');
+}
+
+// Discussion Messages
+export async function fetchDiscussionMessages(
+  projectId: string,
+  discussionId: string,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${discussionId}/messages`,
+  );
+  if (!response.ok) throw new Error('Failed to fetch discussion messages');
+  const data = await response.json();
+  if (!Array.isArray(data)) return [];
+  return data;
+}
+
+export async function createDiscussionMessage(
+  projectId: string,
+  discussionId: string,
+  body: string,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${discussionId}/messages`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    },
+  );
+  if (!response.ok) throw new Error('Failed to create discussion message');
+  return response.json();
+}
+
+export async function updateDiscussionMessage(
+  projectId: string,
+  discussionId: string,
+  id: string,
+  body: string,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${discussionId}/messages/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    },
+  );
+  if (!response.ok) throw new Error('Failed to update discussion message');
+  return response.json();
+}
+
+export async function deleteDiscussionMessage(
+  projectId: string,
+  discussionId: string,
+  id: string,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/session/project/${projectId}/discussions/${discussionId}/messages/${id}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) throw new Error('Failed to delete discussion message');
+}
